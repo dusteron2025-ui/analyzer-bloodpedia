@@ -4,8 +4,8 @@
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
     <security>
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
-        <!-- o jogo roda como administrador; para ler a memória dele o analyzer precisa do mesmo nível -->
-        <requestedExecutionLevel level="requireAdministrator" uiAccess="false"/>
+        <!-- abre como usuário comum; se o jogo estiver como administrador, o analyzer avisa e se reabre como administrador -->
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
       </requestedPrivileges>
     </security>
   </trustInfo>

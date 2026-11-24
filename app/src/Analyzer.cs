@@ -97,6 +97,7 @@ namespace BloodstoneHunt
 
         public IntPtr Handle; public int Pid; public long Base; public Process Processo;
 
+        public const string SemPermissao = "O Bloodstone está aberto como administrador: reabra o analyzer como administrador";
         public static Memoria Abrir(Process p, out string erro)
         {
             erro = null;
@@ -104,7 +105,7 @@ namespace BloodstoneHunt
             if (h == IntPtr.Zero)
             {
                 int e = Marshal.GetLastWin32Error();
-                erro = e == 5 ? "Sem permissão: abra o analyzer como administrador" : "Não foi possível abrir o jogo (erro " + e + ")";
+                erro = e == 5 ? SemPermissao : "Não foi possível abrir o jogo (erro " + e + ")";
                 return null;
             }
             long b;
@@ -419,7 +420,7 @@ namespace BloodstoneHunt
     {
         public Dictionary<string, long> Precos = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         public HashSet<string> Escondidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        public bool PorCima = true, ModoObs, AvisoUso;
+        public bool PorCima = true, ModoObs, AvisoUso, AvisoAdmin;
         public Dictionary<string, double[]> Posicoes = new Dictionary<string, double[]>();
         public HashSet<string> Abertas = new HashSet<string>();
         readonly string pasta;
@@ -441,6 +442,7 @@ namespace BloodstoneHunt
                         if (p[0] == "porcima") PorCima = p[1].Trim() != "0";
                         else if (p[0] == "obs") ModoObs = p[1].Trim() == "1";
                         else if (p[0] == "avisouso") AvisoUso = p[1].Trim() == "1";
+                        else if (p[0] == "avisoadmin") AvisoAdmin = p[1].Trim() == "1";
                         else if (p[0] == "abertas") foreach (var x in p[1].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)) Abertas.Add(x.Trim());
                         else if (p[0].StartsWith("pos."))
                         {
@@ -457,7 +459,7 @@ namespace BloodstoneHunt
             {
                 File.WriteAllLines(Path.Combine(pasta, "precos.tsv"), Precos.Select(k => k.Key + "\t" + k.Value), Encoding.UTF8);
                 File.WriteAllLines(Path.Combine(pasta, "escondidos.txt"), Escondidos, Encoding.UTF8);
-                var o = new List<string> { "porcima=" + (PorCima ? 1 : 0), "obs=" + (ModoObs ? 1 : 0), "avisouso=" + (AvisoUso ? 1 : 0), "abertas=" + string.Join(",", Abertas) };
+                var o = new List<string> { "porcima=" + (PorCima ? 1 : 0), "obs=" + (ModoObs ? 1 : 0), "avisouso=" + (AvisoUso ? 1 : 0), "avisoadmin=" + (AvisoAdmin ? 1 : 0), "abertas=" + string.Join(",", Abertas) };
                 foreach (var k in Posicoes) o.Add("pos." + k.Key + "=" + k.Value[0].ToString(CultureInfo.InvariantCulture) + ";" + k.Value[1].ToString(CultureInfo.InvariantCulture));
                 File.WriteAllLines(Path.Combine(pasta, "opcoes.txt"), o);
             }
@@ -750,7 +752,8 @@ namespace BloodstoneHunt
             trava = new Trava(hunt.W, (Button)hunt.Corpo.FindName("BtnTravar"), () => janelas.Values.Select(x => x.W));
             trava.Mudou += () => { var b = (Button)hunt.Corpo.FindName("BtnTravar"); b.Content = trava.Ligada ? "" : ""; b.Opacity = trava.Ligada ? 1 : 0.45; };
             Atualizacao.Verificar(hunt.W, Log, () => { SalvarPosicoes(); P.Salvar(); });
-            if (!P.AvisoUso) AvisoDeUso(hunt.W);
+            if (!P.AvisoUso || !P.AvisoAdmin) AvisoInicial(hunt.W);
+            Log("administrador: " + (SouAdministrador() ? "sim" : "não"));
             ChecarLicenca();
             var tl = new DispatcherTimer { Interval = TimeSpan.FromHours(6) }; tl.Tick += (s, e) => ChecarLicenca(); tl.Start();
             foreach (var d in Definicoes) if (d[0] != "hunt" && P.Abertas.Contains(d[0])) Mostrar(d[0]);
@@ -992,21 +995,73 @@ namespace BloodstoneHunt
             h.Click += (s, e) => AbrirSite(url); tb.Inlines.Add(h); return tb;
         }
 
-        // aparece uma vez: explica a contagem de uso (o servidor só recebe um código aleatório da instalação e a versão)
-        Window AvisoDeUso(Window dono, bool soMontar = false)
+        static TextBlock Titulo(string t) { return new TextBlock { Text = t, Foreground = Cor("#E9EBEE"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 2, 0, 3) }; }
+        static Border Separador() { return new Border { Height = 1, Background = Cor("#2A2E35"), Margin = new Thickness(0, 4, 0, 8) }; }
+
+        // aparece uma vez (e de novo para quem só tinha visto o aviso antigo): dica de administrador e contagem de uso
+        Window AvisoInicial(Window dono, bool soMontar = false)
         {
-            var w = Dialogo("Um aviso rápido", dono, 300);
+            var w = Dialogo("Antes de começar", dono, 310);
             var st = new StackPanel();
-            st.Children.Add(Paragrafo("Para sabermos quantas pessoas usam o Analyzer Bloodpedia, ele avisa o nosso servidor quando é aberto, enviando só um código anônimo desta instalação e a versão do programa.", "#E9EBEE"));
-            st.Children.Add(Paragrafo("É apenas para controle interno. Nada do seu personagem, da sua conta ou do seu computador é enviado."));
-            st.Children.Add(Paragrafo("Ao continuar usando o analyzer, você está ciente dessa contagem.", "#8B909A"));
+            st.Children.Add(Titulo("Abre o Bloodstone como administrador?"));
+            st.Children.Add(Paragrafo("Então abra o analyzer do mesmo jeito: botão direito no AnalyzerBloodpedia.exe › Executar como administrador. Se o jogo abre normalmente, não precisa fazer nada."));
+            st.Children.Add(Paragrafo("Esqueceu? Sem problema: o analyzer percebe e oferece reabrir sozinho.", "#8B909A"));
+            st.Children.Add(Separador());
+            st.Children.Add(Titulo("Contagem de uso"));
+            st.Children.Add(Paragrafo("Para sabermos quantas pessoas usam o analyzer, ele avisa a Bloodpedia quando é aberto, só com um código anônimo desta instalação e a versão. Nada do seu personagem, da sua conta ou do seu computador é enviado."));
+            st.Children.Add(Paragrafo("Ao usar o analyzer, você está ciente dessa contagem.", "#8B909A"));
             st.Children.Add(Link("Política de privacidade", Licenca.PaginaPrivacidade));
             var ok = new Button { Content = "Entendi", IsDefault = true, Style = (Style)Application.Current.Resources["BotaoAtalho"], HorizontalAlignment = HorizontalAlignment.Right, Padding = new Thickness(14, 0, 14, 0) };
             ok.Click += (s, e) => w.Close();
             st.Children.Add(ok);
             w.Content = st;
-            w.Closed += (s, e) => { P.AvisoUso = true; P.Salvar(); };
+            w.Closed += (s, e) => { P.AvisoUso = true; P.AvisoAdmin = true; P.Salvar(); };
             if (!soMontar) w.Show();
+            return w;
+        }
+
+        // ---------------- administrador só quando precisa ----------------
+        // O analyzer abre como usuário comum. Se o Bloodstone estiver como administrador, o Windows não deixa ler a memória
+        // dele: aí aparece esta janela, que reabre o analyzer como administrador (com o aviso normal do Windows).
+        static bool SouAdministrador()
+        {
+            try { return new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator); } catch { return false; }
+        }
+        bool avisouAdmin; Window janelaAdmin;
+        Window PedirAdministrador(bool soMontar = false)
+        {
+            if (janelaAdmin != null) { janelaAdmin.Activate(); return janelaAdmin; }
+            var hunt = janelas.ContainsKey("hunt") ? janelas["hunt"].W : null;
+            var w = Dialogo("Falta um passo", hunt, 300);
+            var st = new StackPanel();
+            st.Children.Add(Titulo("O Bloodstone está aberto como administrador"));
+            st.Children.Add(Paragrafo("Para ler a sua caçada, o analyzer também precisa estar. Clique abaixo e confirme o aviso do Windows: ele reabre na hora, com tudo salvo."));
+            var msg = Paragrafo("", "#FF8A8A"); msg.Visibility = Visibility.Collapsed; st.Children.Add(msg);
+            var reabrir = new Button { Content = "Reabrir como administrador", IsDefault = true, Style = (Style)Application.Current.Resources["BotaoAtalho"], Padding = new Thickness(12, 0, 12, 0) };
+            var depois = new Button { Content = "Agora não", IsCancel = true, Style = (Style)Application.Current.Resources["BotaoAtalho"], Padding = new Thickness(12, 0, 12, 0) };
+            var lin = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            lin.Children.Add(depois); lin.Children.Add(reabrir); st.Children.Add(lin);
+            w.Content = st;
+            depois.Click += (s, e) => w.Close();
+            reabrir.Click += (s, e) =>
+            {
+                try
+                {
+                    SalvarPosicoes(); P.Salvar();
+                    Process.Start(new ProcessStartInfo(Process.GetCurrentProcess().MainModule.FileName, "--apos-atualizar") { UseShellExecute = true, Verb = "runas", WorkingDirectory = pastaApp });
+                    Log("administrador: reaberto como administrador");
+                    if (hunt != null) hunt.Close(); else Application.Current.Shutdown();
+                }
+                catch (Exception ex)
+                {
+                    var w32 = ex as System.ComponentModel.Win32Exception;
+                    msg.Text = w32 != null && w32.NativeErrorCode == 1223 ? "O aviso do Windows foi cancelado. Clique de novo quando quiser." : "Não deu para reabrir: " + ex.Message;
+                    msg.Visibility = Visibility.Visible;
+                }
+            };
+            w.Closed += (s, e) => { if (janelaAdmin == w) janelaAdmin = null; };
+            if (soMontar) return w;
+            janelaAdmin = w; w.Show(); w.Activate();
             return w;
         }
 
@@ -1133,7 +1188,14 @@ namespace BloodstoneHunt
                         var p = todos.FirstOrDefault(x => { try { return x.MainWindowTitle.IndexOf("BloodStone", StringComparison.OrdinalIgnoreCase) >= 0; } catch { return false; } }) ?? todos.FirstOrDefault();
                         if (p == null) { Status("Aguardando o client.exe…", "aguardando o jogo", 0); continue; }
                         string erro; L.M = Memoria.Abrir(p, out erro);
-                        if (L.M == null) { Status(erro, "sem acesso ao jogo", 2); continue; }
+                        if (L.M == null)
+                        {
+                            bool semAdmin = erro == Memoria.SemPermissao;
+                            Status(erro, semAdmin ? "precisa de administrador" : "sem acesso ao jogo", 2);
+                            // o jogo está como administrador e o analyzer não: oferece reabrir (uma vez por sessão)
+                            if (semAdmin && !avisouAdmin && !SouAdministrador()) { avisouAdmin = true; janelas["hunt"].W.Dispatcher.BeginInvoke(new Action(() => PedirAdministrador())); }
+                            continue;
+                        }
                         Log(string.Format("conectado PID {0} base=0x{1:X}", p.Id, L.M.Base));
                         canais = null; acPilhagem.Reiniciar(); acServidor.Reiniciar();
                         lock (S.Trava) { S.XpUltimo = -1; }
@@ -1422,7 +1484,7 @@ namespace BloodstoneHunt
         void TestarJanelas(string pasta)
         {
             Carregar();
-            var ws = new[] { AvisoDeUso(null, true), MostrarTrava("Sua licença venceu. Renove para continuar usando o analyzer.", true) };
+            var ws = new[] { AvisoInicial(null, true), PedirAdministrador(true), MostrarTrava("Sua licença venceu. Renove para continuar usando o analyzer.", true) };
             for (int i = 0; i < ws.Length; i++)
             {
                 var w = ws[i]; w.Left = -10000; w.ShowInTaskbar = false; w.SizeToContent = SizeToContent.Height; w.Show();

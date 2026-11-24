@@ -17,7 +17,7 @@ O analyzer avisa sozinho quando sair uma versão nova.
 - **Não escreve** na memória, **não injeta** código, **não automatiza** nenhuma ação e **não envia** nada ao servidor do jogo.
 - Conexões com a internet: a consulta da versão mais recente neste repositório (GitHub) e a **contagem de uso** (`app\src\Licenca.cs`): ao abrir, envia à Bloodpedia só um código aleatório da instalação e a versão, para sabermos quantas pessoas usam o analyzer. Nada do personagem, da conta ou do PC. Detalhes na [política de privacidade](https://www.bloodpedia.com.br/privacidade/#analyzer).
 - A resposta da contagem traz uma política assinada ("livre" hoje). Ela já deixa pronta uma trava de licença para um plano pago no futuro, ligada no servidor da wiki com `ANALYZER_COBRANCA=1` e `ANALYZER_CHAVE_PRIVADA`.
-- Pede administrador porque o cliente do jogo roda como administrador.
+- Abre como usuário comum. Se o Bloodstone estiver aberto como administrador, o Windows não deixa ler a memória dele: o analyzer avisa e oferece "Reabrir como administrador".
 - **Atualizações assinadas:** cada versão é assinada com uma chave que fica só no PC de quem publica (`ferramentas\assinar.js`). O analyzer só instala uma atualização se o `AnalyzerBloodpedia.zip.sig` da release conferir com a chave pública embutida nele. Assim, nem quem tomar a conta do GitHub consegue mandar um `.exe` falso.
 - Baixe só pela [página do Hunt Analyzer na Bloodpedia](https://www.bloodpedia.com.br/hunt-analyzer/) ou por este repositório. Cópias "premium" ou "crack" de outros lugares não são nossas.
 

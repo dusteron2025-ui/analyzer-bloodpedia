@@ -6,8 +6,9 @@ Analisador de caçada para o BloodStone: XP/h, loot, supplies, balanço, dano ca
 COMO INSTALAR
 1. Extraia esta pasta em qualquer lugar (ex.: Documentos\AnalyzerBloodpedia).
 2. Rode "criar-atalho.cmd" para criar o atalho na área de trabalho (opcional).
-3. Abra o jogo, depois abra o AnalyzerBloodpedia.exe. O Windows pede permissão de administrador
-   porque o jogo também roda como administrador.
+3. Abra o jogo, depois abra o AnalyzerBloodpedia.exe.
+   Se você abre o Bloodstone como administrador, abra o analyzer do mesmo jeito
+   (botão direito > Executar como administrador). Se esquecer, o analyzer avisa e reabre sozinho.
 4. No jogo, deixe o canal "Pilhagem" ativo (é dele que vêm as kills e o loot).
 
 BOTÕES DO HUNT ANALYZER (topo)
