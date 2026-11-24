@@ -19,6 +19,11 @@
         <Border Width="36" Height="36" Margin="1" CornerRadius="6" Background="#22252C" BorderBrush="{Binding Cor}" BorderThickness="1" Tag="{Binding Nome}" ToolTip="{Binding Dica}" Cursor="Hand" Opacity="{Binding Opacidade}">
           <Grid>
             <Image Source="{Binding Imagem}" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="1,1,0,0">
+              <Border Style="{StaticResource SeloUso}" Background="{StaticResource CorDiaria}" Visibility="{Binding Diaria}"><TextBlock Text="&#xE787;"/></Border>
+              <Border Style="{StaticResource SeloUso}" Background="{StaticResource CorForja}" Visibility="{Binding Forja}"><TextBlock Text="&#xE90F;"/></Border>
+              <Border Style="{StaticResource SeloUso}" Background="{StaticResource CorRefino}" Visibility="{Binding Refino}"><TextBlock Text="&#xE74A;"/></Border>
+            </StackPanel>
             <TextBlock Text="{Binding Quantidade}" FontSize="9.5" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,2,0">
               <TextBlock.Effect><DropShadowEffect BlurRadius="2" ShadowDepth="0" Opacity="1"/></TextBlock.Effect>
             </TextBlock>
@@ -28,4 +33,12 @@
     </ItemsControl.ItemTemplate>
   </ItemsControl>
   <TextBlock Text="Clique: preço · Botão direito: esconder" Foreground="#555A64" FontSize="9.5" Margin="0,5,0,0"/>
+  <StackPanel Orientation="Horizontal" Margin="0,3,0,0" ToolTip="Uso do item segundo a Bloodpedia (passe o mouse no item para ver onde é usado)">
+    <Border Style="{StaticResource SeloUso}" Background="{StaticResource CorDiaria}"><TextBlock Text="&#xE787;"/></Border>
+    <TextBlock Text="diária" Foreground="#7D828C" FontSize="9.5" Margin="3,0,8,0"/>
+    <Border Style="{StaticResource SeloUso}" Background="{StaticResource CorForja}"><TextBlock Text="&#xE90F;"/></Border>
+    <TextBlock Text="forja" Foreground="#7D828C" FontSize="9.5" Margin="3,0,8,0"/>
+    <Border Style="{StaticResource SeloUso}" Background="{StaticResource CorRefino}"><TextBlock Text="&#xE74A;"/></Border>
+    <TextBlock Text="refino" Foreground="#7D828C" FontSize="9.5" Margin="3,0,0,0"/>
+  </StackPanel>
 </StackPanel>

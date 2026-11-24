@@ -122,6 +122,8 @@ if (WIKI) {
   }
   fs.writeFileSync(path.join(APP, 'dados', 'precos.tsv'), [...pr].map(([k, e]) => [k, e.loot, e.custo].join('\t')).join('\n'));
   console.log(JSON.stringify({ criaturas: clin.length, criaturasComImagem: cImg, itensComPreco: pr.size }));
+  // para que serve cada item (missão diária, forja, refino): dados/usos.tsv
+  require('./gerar-usos.js')(WIKI, APP);
 }
 
 // ---- lista de supplies (dados/supplies.json): poções/elixires/tônicos/infusões (categoria U), flechas e alguns consumíveis ----

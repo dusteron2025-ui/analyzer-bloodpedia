@@ -290,6 +290,7 @@ namespace BloodstoneHunt
         public Dictionary<string, long[]> Precos = new Dictionary<string, long[]>(StringComparer.OrdinalIgnoreCase); // [loot, custo]
         public Dictionary<string, string> ImagemCriatura = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public Dictionary<string, int> LookPorMonstro = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, UsoItem> Usos = new Dictionary<string, UsoItem>(StringComparer.OrdinalIgnoreCase);
         readonly string pasta;
         readonly Dictionary<string, ImageSource> cache = new Dictionary<string, ImageSource>();
 
@@ -326,10 +327,18 @@ namespace BloodstoneHunt
             {
                 var p = l.Split('\t'); int look; if (p.Length >= 2 && int.TryParse(p[1], out look) && !LookPorMonstro.ContainsKey(p[0])) LookPorMonstro[p[0]] = look;
             }
+            // para que serve o item (wiki): dados/usos.tsv = nome <TAB> diárias <TAB> forja <TAB> refino ("Nome|qtd;...")
+            foreach (var l in LerLinhas("usos.tsv"))
+            {
+                var p = l.Split('\t'); if (p.Length < 2 || p[0].Length == 0) continue;
+                var u = new UsoItem { Diarias = UsoItem.Ler(p, 1), Forja = UsoItem.Ler(p, 2), Refino = UsoItem.Ler(p, 3) };
+                if (u.Tem) Usos[p[0]] = u;
+            }
             // lista de supplies: dados/supplies.json (["Poção de Vida Média", ...])
             var js = string.Join(" ", LerLinhas("supplies.json"));
             foreach (Match m in Regex.Matches(js, "\"([^\"]+)\"")) NomesSupply.Add(m.Groups[1].Value);
         }
+        public UsoItem Uso(string nome) { UsoItem u; return nome != null && Usos.TryGetValue(nome, out u) ? u : null; }
         IEnumerable<string> LerLinhas(string nome)
         {
             var tp = Pacote.Texto("dados/" + nome);
@@ -371,6 +380,37 @@ namespace BloodstoneHunt
             foreach (var ext in new[] { ".gif", ".png" }) { var f = Path.Combine(pasta, "icones", "criaturas", nome + ext); if (File.Exists(f)) return Carregar(f); }
             int look; if (LookPorMonstro.TryGetValue(nome, out look)) return Carregar(Path.Combine(pasta, "icones", "monstros", look + ".png"));
             return null;
+        }
+    }
+
+    // usos extras de um item segundo a wiki: missões diárias que pedem o item, forja e refino de armas/equipamentos
+    class UsoItem
+    {
+        public List<KeyValuePair<string, int>> Diarias, Forja, Refino;
+        public bool Tem { get { return Diarias.Count + Forja.Count + Refino.Count > 0; } }
+        public static List<KeyValuePair<string, int>> Ler(string[] p, int i)
+        {
+            var r = new List<KeyValuePair<string, int>>(); if (i >= p.Length) return r;
+            foreach (var x in p[i].Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var a = x.Split('|'); int q = 0; if (a.Length > 1) int.TryParse(a[1], out q);
+                if (a[0].Trim().Length > 0) r.Add(new KeyValuePair<string, int>(a[0].Trim(), q));
+            }
+            return r;
+        }
+        static string Lista(List<KeyValuePair<string, int>> l, int max)
+        {
+            var s = string.Join(", ", l.Take(max).Select(k => k.Key));
+            return l.Count > max ? s + " +" + (l.Count - max) : s;
+        }
+        // linhas extras da dica (tooltip) do item
+        public string Dica()
+        {
+            var sb = new StringBuilder();
+            if (Diarias.Count > 0) sb.Append("\n\u25CF Missão diária: " + string.Join(", ", Diarias.Take(3).Select(k => k.Key + (k.Value > 0 ? " (" + k.Value + " un.)" : ""))) + (Diarias.Count > 3 ? " +" + (Diarias.Count - 3) : ""));
+            if (Forja.Count > 0) sb.Append("\n\u25CF Forja: " + Lista(Forja, 4));
+            if (Refino.Count > 0) sb.Append("\n\u25CF Refino: " + Lista(Refino, 4));
+            return sb.ToString();
         }
     }
 
@@ -565,6 +605,11 @@ namespace BloodstoneHunt
         public string Quantidade { get { return (string)G("Quantidade"); } }
         public string Dica { get { return (string)G("Dica"); } }
         public double Opacidade { get { var o = G("Opacidade"); return o == null ? 1 : (double)o; } }
+        // selos de uso (wiki): missão diária, forja, refino
+        public Visibility Diaria { get; set; }
+        public Visibility Forja { get; set; }
+        public Visibility Refino { get; set; }
+        public string Usos { get; set; }
     }
     class Painel : Base
     {
@@ -665,6 +710,7 @@ namespace BloodstoneHunt
             using (var r = typeof(Programa).Assembly.GetManifestResourceStream("Estilos.xaml")) app.Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Load(r));
             var p = new Programa();
             if (args.Length == 2 && args[0] == "--captura") { p.Captura(args[1]); return; }
+            if (args.Length == 2 && args[0] == "--relatorio") { p.Captura(args[1], true); return; }
 #if TESTE
             if (args.Length >= 2 && args[0] == "--testar-instalar") { var r = Atualizacao.Instalar(args[1], args.Length > 2 ? args[2] : null, s => File.AppendAllText(args[1] + ".log", s + Environment.NewLine)); File.AppendAllText(args[1] + ".log", "resultado: " + (r ?? "ok") + Environment.NewLine); return; }
 #endif
@@ -774,6 +820,22 @@ namespace BloodstoneHunt
                 V.Loot.Clear(); V.Kills.Clear(); V.KillsResumo.Clear(); V.SuppliesLista.Clear(); V.RecebidoFontes.Clear(); V.RecebidoTipos.Clear();
             };
             ((Button)c.FindName("BtnTravar")).Click += (s, e) => { if (trava != null) trava.Alternar(); };
+            ((Button)c.FindName("BtnRelatorio")).Click += (s, e) =>
+            {
+                var b = (Button)s;
+                try
+                {
+                    Mouse.OverrideCursor = Cursors.Wait;
+                    var arqs = Relatorio.Gerar(ColetarRelatorio(), pastaApp);
+                    Log("relatório: " + string.Join(" | ", arqs));
+                    b.Content = ""; b.ToolTip = "Relatório salvo na pasta " + Relatorio.NomePasta + "!";
+                    var tm = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
+                    tm.Tick += (s2, e2) => { b.Content = ""; b.ToolTip = DicaRelatorio; tm.Stop(); }; tm.Start();
+                    try { Process.Start("explorer.exe", "/select,\"" + arqs[0] + "\""); } catch { }
+                }
+                catch (Exception ex) { Log("relatório falhou: " + ex); MessageBox.Show(hunt.W, "Não foi possível gerar o relatório:\n" + ex.Message, Info.Nome, MessageBoxButton.OK, MessageBoxImage.Warning); }
+                finally { Mouse.OverrideCursor = null; }
+            };
             ((Button)c.FindName("BtnCopiar")).Click += (s, e) =>
             {
                 try { Clipboard.SetText(TextoHunt()); var bc = (Button)s; bc.Content = ""; bc.ToolTip = "Resumo copiado!"; var tm = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) }; tm.Tick += (s2, e2) => { bc.Content = ""; bc.ToolTip = "Copiar o resumo da hunt"; tm.Stop(); }; tm.Start(); }
@@ -852,6 +914,44 @@ namespace BloodstoneHunt
                 foreach (var s in sup) { long c = CustoSupply(s.Key); sb.AppendLine("  " + Inteiro(s.Value) + "x " + s.Key + (c > 0 ? " (" + Inteiro(c * s.Value) + " gp)" : "")); }
             }
             return sb.ToString().TrimEnd();
+        }
+
+        const string DicaRelatorio = "Gerar relatório da caçada em imagem (1920x1080 e 1080x1920)";
+        // fotografia da sessão para o relatório em imagem (itens escondidos ficam de fora, como no total do loot)
+        DadosRelatorio ColetarRelatorio()
+        {
+            var d = new DadosRelatorio { Logo = LogoMarca() };
+            List<KeyValuePair<string, int>> kills; List<ItemLoot> loot; List<KeyValuePair<string, long>> sup;
+            lock (S.Trava)
+            {
+                d.Duracao = S.Duracao; d.Xp = S.XpGanho; d.Dano = S.Dano; d.Recebido = S.Recebido; d.Cura = S.Cura; d.MaiorGolpe = S.MaiorGolpe; d.MaxDps = S.MaxDps;
+                if (S.Atual != null) d.Nivel = S.Atual.Nivel;
+                kills = S.Kills.OrderByDescending(k => k.Value).ToList();
+                loot = S.Loot.Values.Where(i => !P.Escondidos.Contains(i.Nome)).Select(i => new ItemLoot { Nome = i.Nome, Qtd = i.Qtd, Cor = i.Cor }).ToList();
+                sup = S.Supplies.ToList();
+            }
+            d.Supplies = sup.Sum(s => s.Value * CustoSupply(s.Key));
+            d.Kills = kills.Sum(k => (long)k.Value);
+            d.Monstros = kills.Select(k => new LinhaRelatorio { Nome = k.Key, Qtd = k.Value, Icone = C.IconeCriatura(k.Key) }).ToList();
+            d.Itens = loot.Select(i => new LinhaRelatorio { Nome = i.Nome, Qtd = i.Qtd, Valor = Preco(i.Nome) * i.Qtd, Icone = C.IconeItem(i.Nome), Uso = C.Uso(i.Nome), Cor = i.Cor })
+                          .OrderByDescending(x => x.Valor).ThenByDescending(x => x.Qtd).ToList();
+            d.Loot = d.Itens.Sum(x => x.Valor); d.QtdItens = d.Itens.Sum(x => x.Qtd);
+            return d;
+        }
+        static ImageSource logo;
+        static ImageSource LogoMarca()
+        {
+            if (logo != null) return logo;
+            try
+            {
+                using (var r = typeof(Programa).Assembly.GetManifestResourceStream("logo.png"))
+                {
+                    if (r == null) return null;
+                    var b = new BitmapImage(); b.BeginInit(); b.CacheOption = BitmapCacheOption.OnLoad; b.StreamSource = r; b.EndInit(); b.Freeze(); logo = b;
+                }
+            }
+            catch { }
+            return logo;
         }
 
         long Preco(string item)
@@ -1161,15 +1261,21 @@ namespace BloodstoneHunt
 
             // loot: mais valioso primeiro; escondidos no fim e apagados
             var ordem = loot.OrderBy(i => P.Escondidos.Contains(i.Nome) ? 1 : 0).ThenByDescending(i => Preco(i.Nome) * i.Qtd).ThenByDescending(i => i.Qtd).ToList();
-            Sincronizar(V.Loot, ordem.Select(i => i.Nome).ToList(), n => new LootVM { Nome = n, Imagem = C.IconeItem(n) }, x => x.Nome);
+            Sincronizar(V.Loot, ordem.Select(i => i.Nome).ToList(), NovoLootVM, x => x.Nome);
             for (int i = 0; i < V.Loot.Count; i++)
             {
                 var vm = V.Loot[i]; var it = ordem[i]; long pr = Preco(it.Nome); bool esc = P.Escondidos.Contains(it.Nome);
                 vm.S("Quantidade", it.Qtd >= 10000 ? Num(it.Qtd).Replace(" ", "") : Inteiro(it.Qtd));
                 vm.S("Cor", Cor(it.Cor == null || it.Cor == "#969696" ? "#30343C" : it.Cor));
                 vm.S("Opacidade", esc ? 0.35 : 1.0);
-                vm.S("Dica", it.Nome + "\n" + Inteiro(it.Qtd) + " × " + Inteiro(pr) + " gp = " + Inteiro(pr * it.Qtd) + " gp" + (esc ? "\n(escondido: não conta no total)" : pr == 0 ? "\n(sem preço: clique para definir)" : ""));
+                vm.S("Dica", it.Nome + "\n" + Inteiro(it.Qtd) + " × " + Inteiro(pr) + " gp = " + Inteiro(pr * it.Qtd) + " gp" + vm.Usos + (esc ? "\n(escondido: não conta no total)" : pr == 0 ? "\n(sem preço: clique para definir)" : ""));
             }
+        }
+        LootVM NovoLootVM(string n)
+        {
+            var u = C.Uso(n);
+            Func<bool, Visibility> vis = b => b ? Visibility.Visible : Visibility.Collapsed;
+            return new LootVM { Nome = n, Imagem = C.IconeItem(n), Diaria = vis(u != null && u.Diarias.Count > 0), Forja = vis(u != null && u.Forja.Count > 0), Refino = vis(u != null && u.Refino.Count > 0), Usos = u == null ? "" : u.Dica() };
         }
         void Linhas(ObservableCollection<Linha> col, List<KeyValuePair<string, long>> dados, long total, Func<string, int, Brush> cor, Func<string, string> nome)
         {
@@ -1197,11 +1303,11 @@ namespace BloodstoneHunt
         }
 
         // ---------------- modo de teste: desenha as janelas com dados de exemplo e salva em PNG ----------------
-        void Captura(string arquivo)
+        void Captura(string arquivo, bool relatorio = false)
         {
             Carregar();
             P.PorCima = false;
-            foreach (var d in Definicoes) Criar(d);
+            if (!relatorio) foreach (var d in Definicoes) Criar(d);
             var ex = new[] {
                 "Cockroach: <font style='color: rgb(150,150,150)'>2 Pata de Barata</font>, <font style='color: rgb(150,150,150)'>Punhado de Terra</font>",
                 "Rat: <font style='color: rgb(150,150,150)'>Rabo de Rato</font>, <font style='color: rgb(150,150,150)'>2 Queijo Mofado</font>",
@@ -1215,6 +1321,19 @@ namespace BloodstoneHunt
             S.XpGanho = 184320; S.XpAtual = 112818940; S.Cura = 3120; S.ManaGasta = 2210; S.Atual = new StatusJogador { Nivel = 166, Vida = 2724, VidaMax = 2890, Mana = 3235, ManaMax = 3350 };
             S.Supplies["Poção de Mana Média"] = 7; S.Supplies["Elixir de Vida Médio"] = 1; supplyStatus = "5 tipos de supply no personagem"; S.Acumulado = TimeSpan.FromMinutes(23.5); S.Pausada = true; S.Pausar(false);
             Status("Conectado ao jogo · PID 17632", "conectado", 1);
+            if (relatorio)
+            {
+                // caçada maior, para ver o relatório cheio: mais espécies e itens com uso na wiki
+                var rnd = new Random(7);
+                foreach (var m in new[] { "Orc General", "Orc Berserker", "Orc Shaman", "Orc Warrior", "Orc Spearman", "Orc Rider", "Orc" })
+                    S.Kills[m] = rnd.Next(20, 160);
+                foreach (var n in C.Usos.Keys.Where(k => C.IdPorNome.ContainsKey(k)).Take(40))
+                    S.Loot[n] = new ItemLoot { Nome = n, Qtd = rnd.Next(1, 60), Cor = new[] { "#969696", "#969696", "#50A0FF", "#3CC85A", "#B464FF", "#FFAA32" }[rnd.Next(6)] };
+                S.XpGanho = 18432000; S.Dano = 2840000; S.Recebido = 412000; S.Cura = 398000; S.MaiorGolpe = 4210;
+                S.Supplies["Poção de Mana Média"] = 412; S.Acumulado = TimeSpan.FromMinutes(134); S.Pausada = true; S.Pausar(false);
+                Relatorio.Gerar(ColetarRelatorio(), Path.GetDirectoryName(Path.GetFullPath(arquivo)));
+                return;
+            }
             Atualizar();
             File.WriteAllText(Path.ChangeExtension(arquivo, ".txt"), TextoHunt(), Encoding.UTF8);
             var imgs = new List<BitmapSource>();

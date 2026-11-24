@@ -9,6 +9,28 @@
   <SolidColorBrush x:Key="Verde" Color="#35D07F"/>
   <SolidColorBrush x:Key="Vermelho" Color="#FF5A64"/>
   <SolidColorBrush x:Key="Azul" Color="#5B9BFF"/>
+  <!-- selos de uso do item (wiki): missão diária, forja, refino -->
+  <SolidColorBrush x:Key="CorDiaria" Color="#3D7BEA"/>
+  <SolidColorBrush x:Key="CorForja" Color="#E07B24"/>
+  <SolidColorBrush x:Key="CorRefino" Color="#8A5CE6"/>
+  <Style x:Key="SeloUso" TargetType="Border">
+    <Setter Property="Width" Value="11"/>
+    <Setter Property="Height" Value="11"/>
+    <Setter Property="CornerRadius" Value="5.5"/>
+    <Setter Property="Margin" Value="0,0,1,0"/>
+    <Setter Property="BorderBrush" Value="#17191E"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Style.Resources>
+      <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+        <Setter Property="FontSize" Value="5.5"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+      </Style>
+    </Style.Resources>
+  </Style>
 
   <!-- botão pequeno da barra de título -->
   <Style x:Key="BotaoTitulo" TargetType="Button">
