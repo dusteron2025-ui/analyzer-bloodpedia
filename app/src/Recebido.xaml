@@ -1,0 +1,38 @@
+<StackPanel xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+  <Grid>
+    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+    <TextBlock Style="{StaticResource Rotulo}" Text="Total:"/>
+    <TextBlock Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding RecebidoTotal}"/>
+    <TextBlock Grid.Row="1" Style="{StaticResource Rotulo}" Text="Por hora:"/>
+    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding RecebidoHora}"/>
+    <TextBlock Grid.Row="2" Style="{StaticResource Rotulo}" Text="Máx. DPS:"/>
+    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding MaxDps}" Foreground="{StaticResource Vermelho}"/>
+    <TextBlock Grid.Row="3" Style="{StaticResource Rotulo}" Text="Maior golpe:"/>
+    <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding MaiorGolpe}"/>
+    <TextBlock Grid.Row="4" Style="{StaticResource Rotulo}" Text="Mana perdida:"/>
+    <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding ManaPerdida}"/>
+  </Grid>
+  <Border Style="{StaticResource Separador}" Margin="0,5,0,4"/>
+  <Grid>
+    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+    <TextBlock Style="{StaticResource Rotulo}" Text="Cura:"/>
+    <TextBlock Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding Cura}" Foreground="{StaticResource Verde}"/>
+    <TextBlock Grid.Row="1" Style="{StaticResource Rotulo}" Text="Cura/h:"/>
+    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding CuraHora}"/>
+    <TextBlock Grid.Row="2" Style="{StaticResource Rotulo}" Text="Vida:"/>
+    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding Vida}"/>
+    <ProgressBar Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource BarraFina}" Value="{Binding VidaPct, Mode=OneWay}" Foreground="{StaticResource Vermelho}" Margin="0,2,0,4"/>
+    <TextBlock Grid.Row="4" Style="{StaticResource Rotulo}" Text="Mana:"/>
+    <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding ManaAtual}"/>
+    <ProgressBar Grid.Row="5" Grid.ColumnSpan="2" Style="{StaticResource BarraFina}" Value="{Binding ManaPct, Mode=OneWay}" Foreground="{StaticResource Azul}" Margin="0,2,0,0"/>
+  </Grid>
+  <StackPanel Visibility="{Binding TemTipos}">
+    <TextBlock Style="{StaticResource Secao}" Text="Tipos de dano:"/>
+    <ItemsControl ItemsSource="{Binding RecebidoTipos}" ItemTemplate="{StaticResource LinhaBarra}"/>
+  </StackPanel>
+  <TextBlock Style="{StaticResource Secao}" Text="Fontes de dano:"/>
+  <TextBlock Text="nenhum dano recebido ainda" Foreground="#626772" Visibility="{Binding SemRecebido}"/>
+  <ItemsControl ItemsSource="{Binding RecebidoFontes}" ItemTemplate="{StaticResource LinhaBarra}"/>
+</StackPanel>

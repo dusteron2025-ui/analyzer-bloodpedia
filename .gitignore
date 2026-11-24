@@ -1,0 +1,8 @@
+# fora do repositório: sonda de pesquisa, pacotes gerados, binários e dados extraídos do jogo
+probe/
+dist/
+app/icones/
+app/dados/
+*.exe
+app/captura.*
+ferramentas/*.exe

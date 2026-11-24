@@ -1,0 +1,31 @@
+ANALYZER BLOODPEDIA
+===================
+
+Analisador de caçada para o BloodStone: XP/h, loot, supplies, balanço, dano causado e recebido, cura e monstros mortos.
+
+COMO INSTALAR
+1. Extraia esta pasta em qualquer lugar (ex.: Documentos\AnalyzerBloodpedia).
+2. Rode "criar-atalho.cmd" para criar o atalho na área de trabalho (opcional).
+3. Abra o jogo, depois abra o AnalyzerBloodpedia.exe. O Windows pede permissão de administrador
+   porque o jogo também roda como administrador.
+4. No jogo, deixe o canal "Pilhagem" ativo (é dele que vêm as kills e o loot).
+
+BOTÕES DO HUNT ANALYZER (topo)
+- Copiar: copia um resumo da hunt para colar onde quiser.
+- Cadeado: trava o analyzer — ele continua visível, mas os cliques passam para o jogo.
+  Para destravar, clique no cadeado dourado ou use Ctrl+Shift+L.
+- Pausar, Zerar e Fixar por cima do jogo. A bolinha verde indica que está conectado ao jogo (passe o mouse para ver o status).
+- Embaixo: Loot, XP, Kills, Supplies e Input (dano recebido) abrem janelas detalhadas.
+
+PREÇOS
+- Loot usa o preço que o NPC paga (wiki da Bloodpedia). Clique num item na janela Loot para mudar o preço;
+  botão direito esconde o item. Na janela Supplies, clique num item para definir o custo.
+
+ATUALIZAÇÕES
+- Ao abrir, o analyzer consulta a página de versões no GitHub e avisa quando houver uma nova.
+  Para atualizar, baixe a nova versão e substitua a pasta (seus preços e opções ficam salvos em
+  %LOCALAPPDATA%\BloodstoneHunt e não se perdem).
+
+SEGURANÇA
+- Só lê a memória do jogo (não escreve, não injeta, não automatiza nada).
+- A única conexão com a internet é a consulta de versão no GitHub; nenhum dado é enviado.

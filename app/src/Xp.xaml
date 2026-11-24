@@ -1,0 +1,15 @@
+<Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+  <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+  <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+  <TextBlock Style="{StaticResource Rotulo}" Text="XP ganho:"/>
+  <TextBlock Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding XpTotal}"/>
+  <TextBlock Grid.Row="1" Style="{StaticResource Rotulo}" Text="XP/h:"/>
+  <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding XpHora}" Foreground="{StaticResource Azul}"/>
+  <TextBlock Grid.Row="2" Style="{StaticResource Rotulo}" Text="XP/h (10 min):"/>
+  <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding XpRitmo}"/>
+  <TextBlock Grid.Row="3" Style="{StaticResource Rotulo}" Text="XP por kill:"/>
+  <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding XpPorKill}"/>
+  <TextBlock Grid.Row="4" Style="{StaticResource Rotulo}" Text="XP total:"/>
+  <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding XpAtual}"/>
+  <ProgressBar Grid.Row="5" Grid.ColumnSpan="2" Style="{StaticResource BarraFina}" Value="{Binding XpRitmoPct, Mode=OneWay}" Foreground="{StaticResource Azul}" Margin="0,6,0,0" ToolTip="Ritmo dos últimos 10 min comparado à média da sessão (barra cheia = 2× a média)"/>
+</Grid>
