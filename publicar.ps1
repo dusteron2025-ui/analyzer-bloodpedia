@@ -1,6 +1,7 @@
 # Monta o pacote do Analyzer Bloodpedia para distribuir: compila e gera dist\AnalyzerBloodpedia-v<versão>.zip
 # Uso: powershell -ExecutionPolicy Bypass -File publicar.ps1
-# Depois: gh release create vX.Y.Z dist\AnalyzerBloodpedia-vX.Y.Z.zip dist\AnalyzerBloodpedia.zip --notes "..."
+# Depois: gh release create vX.Y.Z dist\AnalyzerBloodpedia-vX.Y.Z.zip dist\AnalyzerBloodpedia.zip dist\AnalyzerBloodpedia.zip.sig --notes-file dist\notas-X.Y.Z.md
+# A assinatura (.sig) é obrigatória: sem ela, o analyzer 1.0.7+ não instala a atualização sozinho.
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $MyInvocation.MyCommand.Path
 $app = Join-Path $raiz 'app'
@@ -19,4 +20,7 @@ Remove-Item $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path $tmp -DestinationPath $zip
 # cópia com nome fixo: o link .../releases/latest/download/AnalyzerBloodpedia.zip sempre baixa a versão mais nova
 Copy-Item $zip (Join-Path $raiz "dist\AnalyzerBloodpedia.zip") -Force
+# assinatura da atualização automática (chave só neste PC: %USERPROFILE%\.bloodpedia\analyzer-atualizacao-privada.pem)
+node (Join-Path $raiz 'ferramentas\assinar.js') $versao (Join-Path $raiz 'dist\AnalyzerBloodpedia.zip')
+if ($LASTEXITCODE -ne 0) { throw 'falha ao assinar o pacote' }
 "Pacote: $zip ($([math]::Round((Get-Item $zip).Length/1MB,1)) MB)"

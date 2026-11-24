@@ -5,7 +5,9 @@ Responda sempre em português do Brasil.
 ## Compilar e publicar
 - Compilar: `app\compilar.cmd` (C# do .NET Framework 4 que já vem no Windows).
 - Versão: `Versao = "..."` em `app\src\Extras.cs`. Notas da versão em `dist\notas-X.Y.Z.md`.
-- Pacote: `powershell -ExecutionPolicy Bypass -File publicar.ps1`, depois `gh release create vX.Y.Z dist\AnalyzerBloodpedia-vX.Y.Z.zip dist\AnalyzerBloodpedia.zip --notes-file dist\notas-X.Y.Z.md`.
+- Pacote: `powershell -ExecutionPolicy Bypass -File publicar.ps1`, depois `gh release create vX.Y.Z dist\AnalyzerBloodpedia-vX.Y.Z.zip dist\AnalyzerBloodpedia.zip dist\AnalyzerBloodpedia.zip.sig --notes-file dist\notas-X.Y.Z.md`.
+- **Assinatura das atualizações (obrigatória desde a 1.0.7):** o `publicar.ps1` roda `ferramentas\assinar.js`, que gera `dist\AnalyzerBloodpedia.zip.sig` com a chave privada `%USERPROFILE%\.bloodpedia\analyzer-atualizacao-privada.pem`. Sem o `.sig` na release, o analyzer não se atualiza sozinho. Nunca copie essa chave para o repositório, o Vercel ou o Discord, e nunca mostre o conteúdo dela.
+- Contagem de uso e licença: `app\src\Licenca.cs` (cliente) e `api/analyzer-uso.js` / `api/analyzer-licenca.js` na wiki. A chave da licença (`analyzer-licenca-privada.pem`) é outra, e só vai para o Vercel quando a cobrança for ligada.
 - Offsets de memória do jogo: `app\offsets.ini` / classe `Offsets` em `app\src\Analyzer.cs`.
 
 ## Anunciar versão nova no Discord: use o BOT, nunca o navegador

@@ -94,15 +94,23 @@ namespace BloodstoneHunt
                 if (string.IsNullOrEmpty(par)) return null;
                 var p = par.Split('|'); if (p.Length != 2) return null;
                 var dados = Convert.FromBase64String(p[0]); var sig = Convert.FromBase64String(p[1]);
+                return ConfereRsa(dados, sig, Modulo, Expoente) ? Encoding.UTF8.GetString(dados) : null;
+            }
+            catch { return null; }
+        }
+        /** assinatura RSA-SHA256 (PKCS#1 v1.5) de "dados" com a chave pública (módulo e expoente em base64) */
+        public static bool ConfereRsa(byte[] dados, byte[] sig, string modulo, string expoente)
+        {
+            try
+            {
                 using (var rsa = new RSACryptoServiceProvider(new CspParameters(24)))
                 using (var sha = SHA256.Create())
                 {
-                    rsa.ImportParameters(new RSAParameters { Modulus = Convert.FromBase64String(Modulo), Exponent = Convert.FromBase64String(Expoente) });
-                    if (!rsa.VerifyHash(sha.ComputeHash(dados), CryptoConfig.MapNameToOID("SHA256"), sig)) return null;
+                    rsa.ImportParameters(new RSAParameters { Modulus = Convert.FromBase64String(modulo), Exponent = Convert.FromBase64String(expoente) });
+                    return rsa.VerifyHash(sha.ComputeHash(dados), CryptoConfig.MapNameToOID("SHA256"), sig);
                 }
-                return Encoding.UTF8.GetString(dados);
             }
-            catch { return null; }
+            catch { return false; }
         }
         static long Agora { get { return (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds; } }
         static string Ler(string arq) { try { return File.Exists(arq) ? File.ReadAllText(arq).Trim() : null; } catch { return null; } }

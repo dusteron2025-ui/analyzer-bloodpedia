@@ -23,7 +23,7 @@ namespace BloodstoneHunt
     static class Info
     {
         public const string Nome = "Analyzer Bloodpedia";
-        public const string Versao = "1.0.6";
+        public const string Versao = "1.0.7";
         // repositório público onde ficam as versões (GitHub Releases)
         public const string Repositorio = "dusteron2025-ui/analyzer-bloodpedia";
     }
@@ -106,10 +106,26 @@ namespace BloodstoneHunt
 
     // ---------------- aviso de nova versão ----------------
     // Ao abrir, consulta (GET) a página pública de versões do GitHub; não envia nenhum dado do jogo ou do usuário.
-    // Com "Atualizar agora": baixa o zip da versão, confere o SHA-256 informado pelo GitHub, troca o próprio .exe
-    // (o atual vira .antigo e é apagado na próxima abertura) e abre a versão nova.
+    // Com "Atualizar agora": baixa o zip da versão, confere o SHA-256 informado pelo GitHub e a ASSINATURA da Bloodpedia
+    // (arquivo AnalyzerBloodpedia.zip.sig da release, feito por ferramentas\assinar.js com uma chave que fica só no PC de
+    // quem publica), troca o próprio .exe (o atual vira .antigo e é apagado na próxima abertura) e abre a versão nova.
+    // Sem assinatura válida não instala nada: nem quem tomar a conta do GitHub consegue mandar um .exe falso.
     static class Atualizacao
     {
+        // chave pública da assinatura das atualizações (RSA-3072); a privada nunca sai do PC de quem publica
+        const string ModuloAtualizacao = "npJxdMMRhOeMQLXPce2tVlp4iOAJOxbluZNYmEZmNeV1f+w6nyc033WHDyU8kUWaohjGYXwGuOQprkF/H0b431Qv4KKvT+rym3JkCW/dYsz5YXkKldj7lPgdRD9latlZjLQB2b4tr1HWTvNB9anH26QD2+JSinAQeVwhgBzeAc0EJ9OQYvb02WdXt0KD8a2y9tNcd0Lt6xgcVrsL45BqnL3XsinSF+NRpLWc+m6no7gPq1WJjX3fs+2apyBaV7RR1w9fgHkIxrhnqSkXNUu7D4hu2+vX0dWnXDnq7jF2EOwnLvq8V1KAmM4bwqK31rh4rZusWoaiCluSfgurUe33HxbCre6c3g2fs5baaET8x8YMyJeJFSWLOcnZeHjs6rT4XFqsnvqfih5MNjkJ8VvGhOpOM/NVxdj5CdpDkHcgVUB2QirWrVdXMhk9NiZx72bRb05kxAVgNngzlU9GhJ29w/t0t2pqeEyG6CjGCgIoyfJG8hEX4QuhstGG/GSeusXp";
+        const string ExpoenteAtualizacao = "AQAB";
+        /** a assinatura vale para esta versão e este arquivo exato (sha-256 em hexadecimal) */
+        public static bool AssinaturaValida(string versao, string sha256, string assinaturaBase64)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(sha256) || string.IsNullOrEmpty(assinaturaBase64)) return false;
+                var msg = Encoding.UTF8.GetBytes("AnalyzerBloodpedia|" + versao + "|" + sha256.ToLowerInvariant());
+                return Licenca.ConfereRsa(msg, Convert.FromBase64String(assinaturaBase64.Trim()), ModuloAtualizacao, ExpoenteAtualizacao);
+            }
+            catch { return false; }
+        }
         public static void Verificar(Window dono, Action<string> log, Action antesDeSair)
         {
             new Thread(() =>
@@ -126,13 +142,16 @@ namespace BloodstoneHunt
                     var a = Regex.Match(json, "\"name\"\\s*:\\s*\"AnalyzerBloodpedia\\.zip\".*?\"digest\"\\s*:\\s*\"sha256:([0-9a-f]{64})\".*?\"browser_download_url\"\\s*:\\s*\"([^\"]+)\"", RegexOptions.Singleline);
                     if (tag.Length == 0 || !MaisNova(tag, Info.Versao)) { log("atualização: em dia (" + Info.Versao + ")"); return; }
                     log("atualização: nova versão " + tag);
-                    var nova = new Versao { Numero = tag, Notas = notas, Url = a.Success ? a.Groups[2].Value : null, Sha256 = a.Success ? a.Groups[1].Value : null };
+                    var s = Regex.Match(json, "\"name\"\\s*:\\s*\"AnalyzerBloodpedia\\.zip\\.sig\".*?\"browser_download_url\"\\s*:\\s*\"([^\"]+)\"", RegexOptions.Singleline);
+                    var nova = new Versao { Numero = tag, Notas = notas, Url = a.Success ? a.Groups[2].Value : null, Sha256 = a.Success ? a.Groups[1].Value : null, UrlAssinatura = s.Success ? s.Groups[1].Value : null };
+                    // sem o arquivo, a impressão digital ou a assinatura, não dá para instalar sozinho: só oferece o site
+                    if (nova.Sha256 == null || nova.UrlAssinatura == null) { log("atualização: " + tag + " sem SHA-256 ou assinatura; só pelo site"); nova.Url = null; }
                     dono.Dispatcher.BeginInvoke(new Action(() => Perguntar(dono, nova, antesDeSair, log)));
                 }
                 catch (Exception ex) { log("atualização: não verificada (" + ex.Message + ")"); }
             }) { IsBackground = true }.Start();
         }
-        class Versao { public string Numero, Notas, Url, Sha256; }
+        class Versao { public string Numero, Notas, Url, Sha256, UrlAssinatura; }
         static bool MaisNova(string a, string b)
         {
             Func<string, int[]> p = s => s.Split('.').Select(x => { int n; int.TryParse(Regex.Match(x, @"\d+").Value, out n); return n; }).ToArray();
@@ -182,14 +201,21 @@ namespace BloodstoneHunt
             depois.Click += (s, e) => w.Close();
             atualizar.Click += (s, e) =>
             {
-                if (v.Url == null) { try { Process.Start("https://github.com/" + Info.Repositorio + "/releases/latest"); } catch { } w.Close(); return; }
+                if (v.Url == null) { try { Process.Start(Licenca.PaginaPlanos); } catch { } w.Close(); return; }
                 atualizar.IsEnabled = false; depois.IsEnabled = false; barra.Visibility = Visibility.Visible; info.Text = "Baixando…";
                 var tmp = Path.Combine(Path.GetTempPath(), "AnalyzerBloodpedia-" + v.Numero + ".zip");
                 var wc = new WebClient(); wc.Headers.Add("User-Agent", "AnalyzerBloodpedia");
                 wc.DownloadProgressChanged += (s2, e2) => { barra.Value = e2.ProgressPercentage; info.Text = string.Format("Baixando… {0:0.0} de {1:0.0} MB", e2.BytesReceived / 1048576.0, e2.TotalBytesToReceive / 1048576.0); };
                 wc.DownloadFileCompleted += (s2, e2) =>
                 {
-                    string erro = e2.Error != null ? "Não deu para baixar: " + e2.Error.Message : Instalar(tmp, v.Sha256, log);
+                    string erro = null, assinatura = null;
+                    if (e2.Error != null) erro = "Não deu para baixar: " + e2.Error.Message;
+                    else
+                    {
+                        try { using (var ws = new WebClient()) { ws.Headers.Add("User-Agent", "AnalyzerBloodpedia"); assinatura = ws.DownloadString(v.UrlAssinatura); } }
+                        catch (Exception ex) { log("atualização: assinatura não baixou (" + ex.Message + ")"); }
+                        erro = Instalar(tmp, v.Sha256, assinatura, v.Numero, log);
+                    }
                     try { File.Delete(tmp); } catch { }
                     if (erro != null)
                     {
@@ -216,16 +242,16 @@ namespace BloodstoneHunt
             w.Show();
         }
 
-        /** confere o zip (SHA-256 do GitHub), tira o .exe de dentro e troca o atual; devolve null se deu certo ou a mensagem de erro */
-        public static string Instalar(string zip, string sha256, Action<string> log)
+        /** confere o zip (SHA-256 do GitHub e assinatura da Bloodpedia), tira o .exe de dentro e troca o atual;
+         *  devolve null se deu certo ou a mensagem de erro */
+        public static string Instalar(string zip, string sha256, string assinatura, string versao, Action<string> log)
         {
             try
             {
-                if (sha256 != null)
-                {
-                    string h; using (var f = File.OpenRead(zip)) h = BitConverter.ToString(SHA256.Create().ComputeHash(f)).Replace("-", "").ToLowerInvariant();
-                    if (h != sha256) { log("atualização: SHA-256 não bate (" + h + ")"); return "O arquivo baixado veio diferente do publicado."; }
-                }
+                if (sha256 == null) return "Não deu para conferir o arquivo baixado.";
+                string h; using (var f = File.OpenRead(zip)) h = BitConverter.ToString(SHA256.Create().ComputeHash(f)).Replace("-", "").ToLowerInvariant();
+                if (h != sha256.ToLowerInvariant()) { log("atualização: SHA-256 não bate (" + h + ")"); return "O arquivo baixado veio diferente do publicado."; }
+                if (!AssinaturaValida(versao, h, assinatura)) { log("atualização: assinatura inválida ou ausente para " + versao); return "Não deu para confirmar que esta versão é oficial da Bloodpedia, então ela não foi instalada."; }
                 var exe = ExeAtual; var novo = exe + ".novo"; var velho = exe + ".antigo";
                 using (var z = ZipFile.OpenRead(zip))
                 {
