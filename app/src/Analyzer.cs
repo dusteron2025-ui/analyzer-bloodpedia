@@ -665,6 +665,11 @@ namespace BloodstoneHunt
             using (var r = typeof(Programa).Assembly.GetManifestResourceStream("Estilos.xaml")) app.Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Load(r));
             var p = new Programa();
             if (args.Length == 2 && args[0] == "--captura") { p.Captura(args[1]); return; }
+#if TESTE
+            if (args.Length >= 2 && args[0] == "--testar-instalar") { var r = Atualizacao.Instalar(args[1], args.Length > 2 ? args[2] : null, s => File.AppendAllText(args[1] + ".log", s + Environment.NewLine)); File.AppendAllText(args[1] + ".log", "resultado: " + (r ?? "ok") + Environment.NewLine); return; }
+#endif
+            if (args.Length > 0 && args[0] == "--apos-atualizar") Atualizacao.EsperarAnterior();
+            Atualizacao.Limpar();
             p.Iniciar(app);
         }
 
@@ -693,7 +698,7 @@ namespace BloodstoneHunt
             hunt.W.Show();
             trava = new Trava(hunt.W, (Button)hunt.Corpo.FindName("BtnTravar"), () => janelas.Values.Select(x => x.W));
             trava.Mudou += () => { var b = (Button)hunt.Corpo.FindName("BtnTravar"); b.Content = trava.Ligada ? "" : ""; b.Opacity = trava.Ligada ? 1 : 0.45; };
-            Atualizacao.Verificar(hunt.W, Log);
+            Atualizacao.Verificar(hunt.W, Log, () => { SalvarPosicoes(); P.Salvar(); });
             foreach (var d in Definicoes) if (d[0] != "hunt" && P.Abertas.Contains(d[0])) Mostrar(d[0]);
 
             new Thread(LacoLeitura) { IsBackground = true, Name = "leitor" }.Start();

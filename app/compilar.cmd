@@ -10,5 +10,5 @@ if not exist ..\ferramentas\empacotar.exe "%CSC%" -nologo -r:System.Drawing.dll 
 "%CSC%" -nologo -target:winexe -platform:x86 -optimize+ -out:AnalyzerBloodpedia.exe -win32icon:icone.ico -win32manifest:src\app.manifest ^
   -resource:src\Estilos.xaml,Estilos.xaml -resource:src\Hunt.xaml,Hunt.xaml -resource:src\Loot.xaml,Loot.xaml -resource:src\Xp.xaml,Xp.xaml -resource:src\Kills.xaml,Kills.xaml -resource:src\Recebido.xaml,Recebido.xaml -resource:src\Supplies.xaml,Supplies.xaml ^
   -resource:obj\pacote.bin,pacote.bin ^
-  -r:"%WPF%\PresentationFramework.dll" -r:"%WPF%\PresentationCore.dll" -r:"%WPF%\WindowsBase.dll" -r:System.Xaml.dll -r:System.Xml.dll -r:"%NET%\System.IO.Compression.dll" ^
+  -r:"%WPF%\PresentationFramework.dll" -r:"%WPF%\PresentationCore.dll" -r:"%WPF%\WindowsBase.dll" -r:System.Xaml.dll -r:System.Xml.dll -r:"%NET%\System.IO.Compression.dll" -r:"%NET%\System.IO.Compression.FileSystem.dll" ^
   src\Analyzer.cs src\Extras.cs src\Pacote.cs
