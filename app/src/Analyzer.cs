@@ -43,8 +43,10 @@ namespace BloodstoneHunt
         public static Offsets Carregar(string arquivo)
         {
             var o = new Offsets();
-            if (!File.Exists(arquivo)) { o.Salvar(arquivo); return o; }
-            foreach (var l in File.ReadAllLines(arquivo))
+            string[] linhas;
+            if (File.Exists(arquivo)) linhas = File.ReadAllLines(arquivo);
+            else { var tp = Pacote.Texto("offsets.ini"); if (tp == null) return o; linhas = tp.Replace("\r", "").Split('\n'); }
+            foreach (var l in linhas)
             {
                 var p = l.Split(new[] { '=' }, 2); if (p.Length < 2 || l.TrimStart().StartsWith(";")) continue;
                 string k = p[0].Trim(), v = p[1].Trim();
@@ -307,10 +309,10 @@ namespace BloodstoneHunt
                 long.TryParse(p[1], out a); long.TryParse(p[2], out b); Precos[p[0]] = new[] { a, b };
             }
             // preços anotados à mão de NPCs (dados/precos-npc-<NPC>.tsv: nome <TAB> quanto o NPC paga); fica o maior valor
-            var dd = Path.Combine(pasta, "dados");
-            if (Directory.Exists(dd))
-                foreach (var f in Directory.GetFiles(dd, "precos-npc-*.tsv"))
-                    foreach (var l in File.ReadAllLines(f, Encoding.UTF8))
+            var arqsNpc = Pacote.Existe ? Pacote.Nomes("dados/precos-npc-").ToList()
+                        : Directory.Exists(Path.Combine(pasta, "dados")) ? Directory.GetFiles(Path.Combine(pasta, "dados"), "precos-npc-*.tsv").Select(f => "dados/" + Path.GetFileName(f)).ToList() : new List<string>();
+            foreach (var f in arqsNpc)
+                    foreach (var l in LerLinhas(f.Substring(6)))
                     {
                         var p = l.Split((char)9); long v; if (p.Length < 2 || !long.TryParse(p[1].Replace(".", ""), out v)) continue;
                         long[] e; if (!Precos.TryGetValue(p[0], out e)) Precos[p[0]] = e = new long[2];
@@ -325,11 +327,13 @@ namespace BloodstoneHunt
                 var p = l.Split('\t'); int look; if (p.Length >= 2 && int.TryParse(p[1], out look) && !LookPorMonstro.ContainsKey(p[0])) LookPorMonstro[p[0]] = look;
             }
             // lista de supplies: dados/supplies.json (["Poção de Vida Média", ...])
-            var fs = Path.Combine(pasta, "dados", "supplies.json");
-            if (File.Exists(fs)) foreach (Match m in Regex.Matches(File.ReadAllText(fs, Encoding.UTF8), "\"([^\"]+)\"")) NomesSupply.Add(m.Groups[1].Value);
+            var js = string.Join(" ", LerLinhas("supplies.json"));
+            foreach (Match m in Regex.Matches(js, "\"([^\"]+)\"")) NomesSupply.Add(m.Groups[1].Value);
         }
         IEnumerable<string> LerLinhas(string nome)
         {
+            var tp = Pacote.Texto("dados/" + nome);
+            if (tp != null) return tp.Replace("\r", "").Split('\n');
             var f = Path.Combine(pasta, "dados", nome);
             return File.Exists(f) ? File.ReadAllLines(f, Encoding.UTF8) : new string[0];
         }
@@ -351,10 +355,18 @@ namespace BloodstoneHunt
         }
         public ImageSource IconeItem(string nome)
         {
-            int id; return IdPorNome.TryGetValue(nome, out id) ? Carregar(Path.Combine(pasta, "icones", "itens", id + ".png")) : null;
+            int id; if (!IdPorNome.TryGetValue(nome, out id)) return null;
+            return Pacote.Existe ? Pacote.Icone("itens/" + id) : Carregar(Path.Combine(pasta, "icones", "itens", id + ".png"));
         }
         public ImageSource IconeCriatura(string nome)
         {
+            int lk;
+            if (Pacote.Existe)
+            {
+                string a2; if (ImagemCriatura.TryGetValue(nome, out a2) && Pacote.TemIcone("criaturas/" + Path.GetFileNameWithoutExtension(a2))) return Pacote.Icone("criaturas/" + Path.GetFileNameWithoutExtension(a2));
+                if (Pacote.TemIcone("criaturas/" + nome)) return Pacote.Icone("criaturas/" + nome);
+                return LookPorMonstro.TryGetValue(nome, out lk) ? Pacote.Icone("monstros/" + lk) : null;
+            }
             string arq; if (ImagemCriatura.TryGetValue(nome, out arq)) return Carregar(Path.Combine(pasta, "icones", "criaturas", arq));
             foreach (var ext in new[] { ".gif", ".png" }) { var f = Path.Combine(pasta, "icones", "criaturas", nome + ext); if (File.Exists(f)) return Carregar(f); }
             int look; if (LookPorMonstro.TryGetValue(nome, out look)) return Carregar(Path.Combine(pasta, "icones", "monstros", look + ".png"));
@@ -701,7 +713,7 @@ namespace BloodstoneHunt
             // modo OBS: sem transparência (janela "layered" aparece preta na captura BitBlt do OBS)
             
             w.Topmost = P.PorCima;
-            try { w.Icon = BitmapFrame.Create(new Uri(Path.Combine(pastaApp, "icone.ico"))); } catch { }
+            try { var ico = Pacote.Arquivo("icone.ico"); w.Icon = ico != null ? BitmapFrame.Create(new MemoryStream(ico)) : BitmapFrame.Create(new Uri(Path.Combine(pastaApp, "icone.ico"))); } catch { }
             if (d[0] == "hunt") w.ShowInTaskbar = true;
             double[] pos;
             if (P.Posicoes.TryGetValue(d[0], out pos)) { w.WindowStartupLocation = WindowStartupLocation.Manual; w.Left = pos[0]; w.Top = pos[1]; }

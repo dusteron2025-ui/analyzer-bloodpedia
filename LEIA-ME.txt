@@ -23,8 +23,9 @@ PREÇOS
 
 ATUALIZAÇÕES
 - Ao abrir, o analyzer consulta a página de versões no GitHub e avisa quando houver uma nova.
-  Para atualizar, baixe a nova versão e substitua a pasta (seus preços e opções ficam salvos em
-  %LOCALAPPDATA%\BloodstoneHunt e não se perdem).
+  Clique em Baixar, feche o analyzer e troque o AnalyzerBloodpedia.exe pelo novo (seus preços e opções
+  ficam salvos em %LOCALAPPDATA%\BloodstoneHunt e não se perdem).
+- Dados, ícones e preços ficam dentro do AnalyzerBloodpedia.exe: é o único arquivo de que ele precisa.
 
 SEGURANÇA
 - Só lê a memória do jogo (não escreve, não injeta, não automatiza nada).

@@ -21,7 +21,7 @@ namespace BloodstoneHunt
     static class Info
     {
         public const string Nome = "Analyzer Bloodpedia";
-        public const string Versao = "1.0.0";
+        public const string Versao = "1.0.1";
         // repositório público onde ficam as versões (GitHub Releases)
         public const string Repositorio = "dusteron2025-ui/analyzer-bloodpedia";
     }
@@ -146,7 +146,8 @@ namespace BloodstoneHunt
             var linha = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0) };
             linha.Children.Add(depois); linha.Children.Add(baixar); st.Children.Add(linha);
             w.Content = st;
-            baixar.Click += (s, e) => { try { Process.Start(url.Length > 0 ? url : "https://github.com/" + Info.Repositorio + "/releases/latest"); } catch { } w.Close(); };
+            // baixa o zip direto (sem abrir a página do GitHub)
+            baixar.Click += (s, e) => { try { Process.Start("https://github.com/" + Info.Repositorio + "/releases/latest/download/AnalyzerBloodpedia.zip"); } catch { } w.Close(); };
             depois.Click += (s, e) => w.Close();
             w.Loaded += (s, e) =>
             {

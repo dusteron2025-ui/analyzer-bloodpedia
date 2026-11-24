@@ -6,3 +6,5 @@ app/dados/
 *.exe
 app/captura.*
 ferramentas/*.exe
+teste-1.0.0/
+app/obj/
