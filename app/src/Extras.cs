@@ -23,7 +23,7 @@ namespace BloodstoneHunt
     static class Info
     {
         public const string Nome = "Analyzer Bloodpedia";
-        public const string Versao = "1.0.5";
+        public const string Versao = "1.0.6";
         // repositório público onde ficam as versões (GitHub Releases)
         public const string Repositorio = "dusteron2025-ui/analyzer-bloodpedia";
     }

@@ -419,7 +419,7 @@ namespace BloodstoneHunt
     {
         public Dictionary<string, long> Precos = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         public HashSet<string> Escondidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        public bool PorCima = true, ModoObs;
+        public bool PorCima = true, ModoObs, AvisoUso;
         public Dictionary<string, double[]> Posicoes = new Dictionary<string, double[]>();
         public HashSet<string> Abertas = new HashSet<string>();
         readonly string pasta;
@@ -440,6 +440,7 @@ namespace BloodstoneHunt
                         var p = l.Split(new[] { "=" }, 2, StringSplitOptions.None); if (p.Length < 2) continue;
                         if (p[0] == "porcima") PorCima = p[1].Trim() != "0";
                         else if (p[0] == "obs") ModoObs = p[1].Trim() == "1";
+                        else if (p[0] == "avisouso") AvisoUso = p[1].Trim() == "1";
                         else if (p[0] == "abertas") foreach (var x in p[1].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)) Abertas.Add(x.Trim());
                         else if (p[0].StartsWith("pos."))
                         {
@@ -456,7 +457,7 @@ namespace BloodstoneHunt
             {
                 File.WriteAllLines(Path.Combine(pasta, "precos.tsv"), Precos.Select(k => k.Key + "\t" + k.Value), Encoding.UTF8);
                 File.WriteAllLines(Path.Combine(pasta, "escondidos.txt"), Escondidos, Encoding.UTF8);
-                var o = new List<string> { "porcima=" + (PorCima ? 1 : 0), "obs=" + (ModoObs ? 1 : 0), "abertas=" + string.Join(",", Abertas) };
+                var o = new List<string> { "porcima=" + (PorCima ? 1 : 0), "obs=" + (ModoObs ? 1 : 0), "avisouso=" + (AvisoUso ? 1 : 0), "abertas=" + string.Join(",", Abertas) };
                 foreach (var k in Posicoes) o.Add("pos." + k.Key + "=" + k.Value[0].ToString(CultureInfo.InvariantCulture) + ";" + k.Value[1].ToString(CultureInfo.InvariantCulture));
                 File.WriteAllLines(Path.Combine(pasta, "opcoes.txt"), o);
             }
@@ -713,6 +714,9 @@ namespace BloodstoneHunt
             if (args.Length == 2 && args[0] == "--relatorio") { p.Captura(args[1], true); return; }
 #if TESTE
             if (args.Length >= 2 && args[0] == "--testar-instalar") { var r = Atualizacao.Instalar(args[1], args.Length > 2 ? args[2] : null, s => File.AppendAllText(args[1] + ".log", s + Environment.NewLine)); File.AppendAllText(args[1] + ".log", "resultado: " + (r ?? "ok") + Environment.NewLine); return; }
+            if (args.Length == 2 && args[0] == "--testar-uso") { var lg = new StringBuilder(); var rr = Licenca.Checar(x => lg.AppendLine(x)); lg.AppendLine("bloqueado=" + rr.Bloqueado + " licenciado=" + rr.Licenciado); File.WriteAllText(args[1], lg.ToString()); return; }
+            if (args.Length == 2 && args[0] == "--testar-janelas") { p.TestarJanelas(args[1]); return; }
+            if (args.Length == 2 && args[0] == "--testar-assinatura") { File.WriteAllText(args[1] + ".resultado", Licenca.Conferir(File.ReadAllText(args[1]).Trim()) ?? "INVALIDA"); return; }
 #endif
             if (args.Length > 0 && args[0] == "--apos-atualizar") Atualizacao.EsperarAnterior();
             Atualizacao.Limpar();
@@ -745,6 +749,9 @@ namespace BloodstoneHunt
             trava = new Trava(hunt.W, (Button)hunt.Corpo.FindName("BtnTravar"), () => janelas.Values.Select(x => x.W));
             trava.Mudou += () => { var b = (Button)hunt.Corpo.FindName("BtnTravar"); b.Content = trava.Ligada ? "" : ""; b.Opacity = trava.Ligada ? 1 : 0.45; };
             Atualizacao.Verificar(hunt.W, Log, () => { SalvarPosicoes(); P.Salvar(); });
+            if (!P.AvisoUso) AvisoDeUso(hunt.W);
+            ChecarLicenca();
+            var tl = new DispatcherTimer { Interval = TimeSpan.FromHours(6) }; tl.Tick += (s, e) => ChecarLicenca(); tl.Start();
             foreach (var d in Definicoes) if (d[0] != "hunt" && P.Abertas.Contains(d[0])) Mostrar(d[0]);
 
             new Thread(LacoLeitura) { IsBackground = true, Name = "leitor" }.Start();
@@ -958,6 +965,114 @@ namespace BloodstoneHunt
         {
             long v; if (P.Precos.TryGetValue(item, out v)) return v;
             long[] p; return C.Precos.TryGetValue(item, out p) ? p[0] : 0;
+        }
+
+        // ---------------- aviso de contagem de uso e trava de licença (Licenca.cs) ----------------
+        static void AbrirSite(string url) { try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { } }
+        Window Dialogo(string titulo, Window dono, int largura)
+        {
+            var w = new Window { Title = titulo, Width = largura, Topmost = true, Tag = Cor("#8A5CE6"), Uid = "", ShowInTaskbar = dono == null };
+            if (dono != null && dono.IsVisible) { w.Owner = dono; w.WindowStartupLocation = WindowStartupLocation.CenterOwner; } else w.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            w.Style = (Style)Application.Current.Resources["JanelaAnalyzer"];
+            w.Loaded += (s, e) =>
+            {
+                w.ApplyTemplate();
+                ((Button)w.Template.FindName("PART_Fechar", w)).Click += (s2, e2) => w.Close();
+                ((FrameworkElement)w.Template.FindName("PART_Recolher", w)).Visibility = Visibility.Collapsed;
+                ((FrameworkElement)w.Template.FindName("PART_Titulo", w)).MouseLeftButtonDown += (s2, e2) => w.DragMove();
+            };
+            return w;
+        }
+        static TextBlock Paragrafo(string t, string cor = "#C9CDD4") { return new TextBlock { Text = t, Foreground = Cor(cor), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 7), LineHeight = 16 }; }
+        TextBlock Link(string texto, string url)
+        {
+            var tb = new TextBlock { Margin = new Thickness(0, 0, 0, 8) };
+            var h = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(texto)) { Foreground = Cor("#B38CFF") };
+            h.Click += (s, e) => AbrirSite(url); tb.Inlines.Add(h); return tb;
+        }
+
+        // aparece uma vez: explica a contagem de uso (o servidor só recebe um código aleatório da instalação e a versão)
+        Window AvisoDeUso(Window dono, bool soMontar = false)
+        {
+            var w = Dialogo("Um aviso rápido", dono, 300);
+            var st = new StackPanel();
+            st.Children.Add(Paragrafo("Para sabermos quantas pessoas usam o Analyzer Bloodpedia, ele avisa o nosso servidor quando é aberto, enviando só um código anônimo desta instalação e a versão do programa.", "#E9EBEE"));
+            st.Children.Add(Paragrafo("É apenas para controle interno. Nada do seu personagem, da sua conta ou do seu computador é enviado."));
+            st.Children.Add(Paragrafo("Ao continuar usando o analyzer, você está ciente dessa contagem.", "#8B909A"));
+            st.Children.Add(Link("Política de privacidade", Licenca.PaginaPrivacidade));
+            var ok = new Button { Content = "Entendi", IsDefault = true, Style = (Style)Application.Current.Resources["BotaoAtalho"], HorizontalAlignment = HorizontalAlignment.Right, Padding = new Thickness(14, 0, 14, 0) };
+            ok.Click += (s, e) => w.Close();
+            st.Children.Add(ok);
+            w.Content = st;
+            w.Closed += (s, e) => { P.AvisoUso = true; P.Salvar(); };
+            if (!soMontar) w.Show();
+            return w;
+        }
+
+        volatile bool checandoLicenca; bool bloqueado; Window janelaTrava;
+        void ChecarLicenca()
+        {
+            if (checandoLicenca) return; checandoLicenca = true;
+            var disp = janelas["hunt"].W.Dispatcher;
+            new Thread(() =>
+            {
+                ResultadoLicenca r; try { r = Licenca.Checar(Log); } catch (Exception e) { Log("licença: " + e.Message); r = new ResultadoLicenca(); }
+                checandoLicenca = false;
+                disp.BeginInvoke(new Action(() => AplicarLicenca(r)));
+            }) { IsBackground = true, Name = "licenca" }.Start();
+        }
+        void AplicarLicenca(ResultadoLicenca r)
+        {
+            if (r.Bloqueado)
+            {
+                if (!bloqueado) { bloqueado = true; foreach (var j in janelas.Values) j.W.Hide(); Log("licença: bloqueado (" + r.Mensagem + ")"); }
+                MostrarTrava(r.Mensagem);
+                return;
+            }
+            if (!bloqueado) return;
+            bloqueado = false; Log("licença: liberado");
+            if (janelaTrava != null) { var t = janelaTrava; janelaTrava = null; t.Close(); }
+            janelas["hunt"].W.Show();
+            foreach (var d in Definicoes) if (d[0] != "hunt" && P.Abertas.Contains(d[0])) janelas[d[0]].W.Show();
+        }
+        // sem licença válida (só quando a cobrança estiver ligada no servidor): pede a chave; fechar encerra o analyzer
+        Window MostrarTrava(string mensagem, bool soMontar = false)
+        {
+            if (janelaTrava != null) { janelaTrava.Activate(); return janelaTrava; }
+            var w = Dialogo("Licença do analyzer", null, 310); janelaTrava = w;
+            var st = new StackPanel();
+            st.Children.Add(Paragrafo("Para continuar usando o Analyzer Bloodpedia, ative a sua licença.", "#E9EBEE"));
+            var msg = Paragrafo(mensagem ?? "", "#FF8A8A"); st.Children.Add(msg);
+            var caixa = new TextBox { FontSize = 13, Padding = new Thickness(6, 3, 6, 3), Background = Cor("#101216"), Foreground = Brushes.White, BorderBrush = Cor("#3A3F49"), CaretBrush = Brushes.White, Margin = new Thickness(0, 0, 0, 8) };
+            st.Children.Add(new TextBlock { Text = "Chave de licença", Foreground = Cor("#8B909A"), FontSize = 10.5, Margin = new Thickness(0, 0, 0, 3) });
+            st.Children.Add(caixa);
+            st.Children.Add(Link("Ver planos e como assinar", Licenca.PaginaPlanos));
+            var ativar = new Button { Content = "Ativar", IsDefault = true, Style = (Style)Application.Current.Resources["BotaoAtalho"], Padding = new Thickness(14, 0, 14, 0) };
+            var sair = new Button { Content = "Sair", IsCancel = true, Style = (Style)Application.Current.Resources["BotaoAtalho"], Padding = new Thickness(14, 0, 14, 0) };
+            var lin = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            lin.Children.Add(sair); lin.Children.Add(ativar); st.Children.Add(lin);
+            w.Content = st;
+            sair.Click += (s, e) => w.Close();
+            ativar.Click += (s, e) =>
+            {
+                var chave = caixa.Text.Trim(); if (chave.Length < 8) { msg.Text = "Digite a chave completa."; return; }
+                ativar.IsEnabled = false; msg.Foreground = Cor("#8B909A"); msg.Text = "Validando…";
+                new Thread(() =>
+                {
+                    string erro; bool ok = Licenca.Ativar(chave, out erro);
+                    w.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        ativar.IsEnabled = true;
+                        if (ok) { msg.Foreground = Cor("#35D07F"); msg.Text = "Licença ativada!"; ChecarLicenca(); }
+                        else { msg.Foreground = Cor("#FF8A8A"); msg.Text = erro; }
+                    }));
+                }) { IsBackground = true }.Start();
+            };
+            // fechar a trava sem licença encerra o programa
+            w.Closed += (s, e) => { if (janelaTrava == w) { janelaTrava = null; if (bloqueado) janelas["hunt"].W.Close(); } };
+            if (soMontar) { janelaTrava = null; return w; }
+            w.Show(); w.Activate();
+            return w;
         }
 
         void EditarPreco(string item, Window dono) { EditarPreco(item, dono, false); }
@@ -1302,6 +1417,22 @@ namespace BloodstoneHunt
             while (col.Count > chaves.Count) col.RemoveAt(col.Count - 1);
         }
 
+#if TESTE
+        void TestarJanelas(string pasta)
+        {
+            Carregar();
+            var ws = new[] { AvisoDeUso(null, true), MostrarTrava("Sua licença venceu. Renove para continuar usando o analyzer.", true) };
+            for (int i = 0; i < ws.Length; i++)
+            {
+                var w = ws[i]; w.Left = -10000; w.ShowInTaskbar = false; w.SizeToContent = SizeToContent.Height; w.Show();
+                w.Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.ContextIdle); w.UpdateLayout();
+                var raiz = (FrameworkElement)VisualTreeHelper.GetChild(w, 0);
+                var rtb = new RenderTargetBitmap((int)w.ActualWidth, (int)w.ActualHeight, 96, 96, PixelFormats.Pbgra32); rtb.Render(raiz);
+                var enc = new PngBitmapEncoder(); enc.Frames.Add(BitmapFrame.Create(rtb));
+                using (var f = File.Create(Path.Combine(pasta, "janela" + i + ".png"))) enc.Save(f);
+            }
+        }
+#endif
         // ---------------- modo de teste: desenha as janelas com dados de exemplo e salva em PNG ----------------
         void Captura(string arquivo, bool relatorio = false)
         {

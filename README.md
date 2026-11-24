@@ -15,7 +15,8 @@ O analyzer avisa sozinho quando sair uma versão nova.
 ## Como funciona
 - **Só lê** a memória do `client.exe` (`ReadProcessMemory`): canais de chat "Pilhagem" e "Servidor", XP, vida/mana e o total de cada item que o personagem carrega.
 - **Não escreve** na memória, **não injeta** código, **não automatiza** nenhuma ação e **não envia** nada ao servidor do jogo.
-- A única conexão com a internet é a consulta da versão mais recente neste repositório (GitHub), ao abrir.
+- Conexões com a internet: a consulta da versão mais recente neste repositório (GitHub) e a **contagem de uso** (`app\src\Licenca.cs`): ao abrir, envia à Bloodpedia só um código aleatório da instalação e a versão, para sabermos quantas pessoas usam o analyzer. Nada do personagem, da conta ou do PC. Detalhes na [política de privacidade](https://www.bloodpedia.com.br/privacidade/#analyzer).
+- A resposta da contagem traz uma política assinada ("livre" hoje). Ela já deixa pronta uma trava de licença para um plano pago no futuro, ligada no servidor da wiki com `ANALYZER_COBRANCA=1` e `ANALYZER_CHAVE_PRIVADA`.
 - Pede administrador porque o cliente do jogo roda como administrador.
 
 ## Compilar

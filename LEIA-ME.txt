@@ -29,4 +29,8 @@ ATUALIZAÇÕES
 
 SEGURANÇA
 - Só lê a memória do jogo (não escreve, não injeta, não automatiza nada).
-- A única conexão com a internet é a consulta de versão no GitHub; nenhum dado é enviado.
+- Nada do seu personagem, da sua conta ou do seu computador é enviado.
+- Conexões com a internet: a consulta de versão no GitHub e uma contagem de uso. Ao abrir, o analyzer
+  avisa a Bloodpedia com um código anônimo desta instalação e a versão, só para sabermos quantas pessoas
+  usam o programa (controle interno). Ao usar o analyzer, você está ciente dessa contagem.
+  Mais detalhes: https://www.bloodpedia.com.br/privacidade/#analyzer
