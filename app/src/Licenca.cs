@@ -51,12 +51,14 @@ namespace BloodstoneHunt
             catch { return Guid.NewGuid().ToString("N"); }
         }
         /** código deste computador para a licença: hash do MachineGuid do Windows (não dá para voltar ao original) */
-        static string Maquina()
+        static string Maquina() { return MaquinaPara("analyzer"); }
+        /** hash do PC para um uso específico: cada uso gera um valor diferente (não dá para cruzar um com outro) */
+        public static string MaquinaPara(string uso)
         {
             string g = null;
             try { using (var k = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64).OpenSubKey(@"SOFTWARE\Microsoft\Cryptography")) g = k == null ? null : k.GetValue("MachineGuid") as string; } catch { }
             if (string.IsNullOrEmpty(g)) g = Environment.MachineName;
-            using (var sha = SHA256.Create()) return Hex(sha.ComputeHash(Encoding.UTF8.GetBytes("bloodpedia-analyzer|" + g.ToLowerInvariant())));
+            using (var sha = SHA256.Create()) return Hex(sha.ComputeHash(Encoding.UTF8.GetBytes("bloodpedia-" + uso + "|" + g.ToLowerInvariant())));
         }
         static string Hex(byte[] b) { var sb = new StringBuilder(); foreach (var x in b) sb.Append(x.ToString("x2")); return sb.ToString(); }
 

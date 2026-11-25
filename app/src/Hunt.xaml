@@ -5,6 +5,7 @@
       <Ellipse Width="7" Height="7" Fill="{Binding CorStatus}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
     </Grid>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+      <Button x:Name="BtnGrupo" Style="{StaticResource BotaoTitulo}" Content="&#xE716;" ToolTip="Caçada em grupo (Party Hunt)"/>
       <Button x:Name="BtnRelatorio" Style="{StaticResource BotaoTitulo}" Content="&#xE722;" ToolTip="Gerar relatório da caçada em imagem (1920x1080 e 1080x1920)"/>
       <Button x:Name="BtnCopiar" Style="{StaticResource BotaoTitulo}" Content="&#xE8C8;" ToolTip="Copiar o resumo da hunt"/>
       <Button x:Name="BtnTravar" Style="{StaticResource BotaoTitulo}" Content="&#xE785;" Opacity="0.45" ToolTip="Travar: o analyzer fica visível mas os cliques passam para o jogo (Ctrl+Shift+L)"/>

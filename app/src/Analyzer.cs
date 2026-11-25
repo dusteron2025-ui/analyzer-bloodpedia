@@ -681,7 +681,7 @@ namespace BloodstoneHunt
         public string Chave; public Window W; public FrameworkElement Corpo;
     }
 
-    class Programa
+    partial class Programa
     {
         static readonly Brush[] Cores = { Cor("#F2B544"), Cor("#FF5A64"), Cor("#5B9BFF"), Cor("#35D07F"), Cor("#B57CFF"), Cor("#3FC7D9"), Cor("#FF9F43") };
         static Brush Cor(string h) { var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(h)); b.Freeze(); return b; }
@@ -717,6 +717,7 @@ namespace BloodstoneHunt
 #if TESTE
             if (args.Length >= 2 && args[0] == "--testar-instalar") { var r = Atualizacao.Instalar(args[1], args.Length > 2 ? args[2] : null, args.Length > 3 ? File.ReadAllText(args[3]) : null, args.Length > 4 ? args[4] : Info.Versao, s => File.AppendAllText(args[1] + ".log", s + Environment.NewLine)); File.AppendAllText(args[1] + ".log", "resultado: " + (r ?? "ok") + Environment.NewLine); return; }
             if (args.Length == 2 && args[0] == "--testar-uso") { var lg = new StringBuilder(); var rr = Licenca.Checar(x => lg.AppendLine(x)); lg.AppendLine("bloqueado=" + rr.Bloqueado + " licenciado=" + rr.Licenciado); File.WriteAllText(args[1], lg.ToString()); return; }
+            if (args.Length == 2 && args[0] == "--testar-grupo") { p.TestarGrupo(args[1]); return; }
             if (args.Length == 2 && args[0] == "--testar-janelas") { p.TestarJanelas(args[1]); return; }
             if (args.Length == 5 && args[0] == "--testar-atualizacao") { string h; using (var f = File.OpenRead(args[2])) h = BitConverter.ToString(System.Security.Cryptography.SHA256.Create().ComputeHash(f)).Replace("-", "").ToLowerInvariant(); File.WriteAllText(args[4], Atualizacao.AssinaturaValida(args[1], h, File.ReadAllText(args[3])) ? "VALIDA" : "INVALIDA"); return; }
             if (args.Length == 2 && args[0] == "--testar-assinatura") { File.WriteAllText(args[1] + ".resultado", Licenca.Conferir(File.ReadAllText(args[1]).Trim()) ?? "INVALIDA"); return; }
@@ -747,7 +748,7 @@ namespace BloodstoneHunt
             foreach (var d in Definicoes) Criar(d);
             var hunt = janelas["hunt"];
             Ligar(hunt);
-            hunt.W.Closed += (s, e) => { rodando = false; SalvarPosicoes(); P.Salvar(); app.Shutdown(); };
+            hunt.W.Closed += (s, e) => { rodando = false; try { EnviarGrupo(true); } catch { } SalvarPosicoes(); P.Salvar(); app.Shutdown(); };
             hunt.W.Show();
             trava = new Trava(hunt.W, (Button)hunt.Corpo.FindName("BtnTravar"), () => janelas.Values.Select(x => x.W));
             trava.Mudou += () => { var b = (Button)hunt.Corpo.FindName("BtnTravar"); b.Content = trava.Ligada ? "" : ""; b.Opacity = trava.Ligada ? 1 : 0.45; };
@@ -755,6 +756,8 @@ namespace BloodstoneHunt
             if (!P.AvisoUso || !P.AvisoAdmin) AvisoInicial(hunt.W);
             Log("administrador: " + (SouAdministrador() ? "sim" : "não"));
             ChecarLicenca();
+            IniciarGrupo();
+            if (EmGrupo && P.Abertas.Contains("grupo")) MostrarJanelaGrupo();
             var tl = new DispatcherTimer { Interval = TimeSpan.FromHours(6) }; tl.Tick += (s, e) => ChecarLicenca(); tl.Start();
             foreach (var d in Definicoes) if (d[0] != "hunt" && P.Abertas.Contains(d[0])) Mostrar(d[0]);
 
@@ -831,6 +834,7 @@ namespace BloodstoneHunt
                 V.Loot.Clear(); V.Kills.Clear(); V.KillsResumo.Clear(); V.SuppliesLista.Clear(); V.RecebidoFontes.Clear(); V.RecebidoTipos.Clear();
             };
             ((Button)c.FindName("BtnTravar")).Click += (s, e) => { if (trava != null) trava.Alternar(); };
+            ((Button)c.FindName("BtnGrupo")).Click += (s, e) => AbrirGrupo();
             ((Button)c.FindName("BtnRelatorio")).Click += (s, e) =>
             {
                 var b = (Button)s;
