@@ -82,13 +82,42 @@ namespace BloodstoneHunt
         string[] grupoAtual;              // código, membro, segredo, nome
         Dictionary<string, object> grupoEstado; DateTime grupoUltimoEnvio = DateTime.MinValue; string grupoErro;
         DispatcherTimer grupoTimer; volatile bool grupoEnviando; Janela janelaGrupo; StackPanel grupoCorpo;
+        // O grupo conta a partir de um "ponto de partida": ao entrar/criar, quando o líder zera (nova época) ou quando a
+        // própria sessão é zerada. Enviado = número da caçada − base (a base pode ser negativa para manter o que já
+        // tinha sido contado, por exemplo depois de reabrir o analyzer ou zerar só a própria sessão).
+        long grupoEpoca = -1; Dictionary<string, long> grupoBase, grupoUltimoEnviado;
+        static readonly string[] CamposGrupo = { "loot", "supplies", "dano", "cura" };
 
         bool EmGrupo { get { return grupoAtual != null; } }
+
+        Dictionary<string, long> NumerosCacada()
+        {
+            var d = ColetarRelatorio();
+            return new Dictionary<string, long> { { "loot", d.Loot }, { "supplies", d.Supplies }, { "dano", d.Dano }, { "cura", d.Cura } };
+        }
+        /** recomeça a contagem do grupo a partir de agora (mantendo "manter", se vier) */
+        void NovaBaseGrupo(Dictionary<string, long> manter)
+        {
+            var agora = NumerosCacada();
+            grupoBase = CamposGrupo.ToDictionary(k => k, k => agora[k] - (manter != null && manter.ContainsKey(k) ? manter[k] : 0));
+        }
+        /** a sessão local foi zerada no Hunt Analyzer: o grupo continua com o que já tinha recebido */
+        void SessaoLocalZerada()
+        {
+            if (!EmGrupo) return;
+            grupoBase = CamposGrupo.ToDictionary(k => k, k => -(grupoUltimoEnviado != null && grupoUltimoEnviado.ContainsKey(k) ? grupoUltimoEnviado[k] : 0));
+        }
+        void ReenviarLogo()
+        {
+            var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(21) };   // o servidor aceita um envio a cada 20 s
+            t.Tick += (s, e) => { t.Stop(); EnviarGrupo(false); }; t.Start();
+        }
 
         // chamado ao abrir: se estava num grupo, volta a ele
         void IniciarGrupo()
         {
             grupoAtual = GrupoServidor.Atual;
+            grupoEpoca = -1; grupoBase = null;   // o primeiro envio só pergunta a época; depois continua de onde parou
             grupoTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(IntervaloGrupo) };
             grupoTimer.Tick += (s, e) => EnviarGrupo(false);
             var t2 = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) }; t2.Tick += (s, e) => { if (EmGrupo) DesenharGrupo(); }; t2.Start();   // "há X min"
@@ -98,16 +127,17 @@ namespace BloodstoneHunt
         /** só o que o painel do grupo usa: loot (o servidor só aproveita o do líder), supplies em gp, dano e cura */
         Dictionary<string, object> DadosGrupo()
         {
-            var d = ColetarRelatorio();
-            return new Dictionary<string, object> {
-                { "loot", d.Loot }, { "supplies", d.Supplies }, { "dano", d.Dano }, { "cura", d.Cura } };
+            var agora = NumerosCacada();
+            var env = CamposGrupo.ToDictionary(k => k, k => Math.Max(0, agora[k] - (grupoBase != null ? grupoBase[k] : 0)));
+            grupoUltimoEnviado = env;
+            return env.ToDictionary(x => x.Key, x => (object)x.Value);
         }
 
         void EnviarGrupo(bool final)
         {
             if (!EmGrupo || grupoEnviando) return;
             grupoEnviando = true;
-            var g = grupoAtual; var corpo = new Dictionary<string, object> { { "acao", "enviar" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] }, { "dados", DadosGrupo() } };
+            var g = grupoAtual; var corpo = new Dictionary<string, object> { { "acao", "enviar" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] }, { "epoca", grupoEpoca }, { "dados", DadosGrupo() } };
             Action rodar = () =>
             {
                 int st; var r = GrupoServidor.Post("grupo", corpo, out st, final ? 3000 : 10000);
@@ -119,7 +149,25 @@ namespace BloodstoneHunt
         }
         void RespostaGrupo(int st, Dictionary<string, object> r)
         {
-            if (st == 200) { grupoEstado = GrupoServidor.Obj(r, "estado"); grupoUltimoEnvio = DateTime.Now; grupoErro = null; }
+            if (st == 200)
+            {
+                grupoEstado = GrupoServidor.Obj(r, "estado"); grupoUltimoEnvio = DateTime.Now; grupoErro = null;
+                long ep = GrupoServidor.Num(grupoEstado, "epoca");
+                if (grupoEpoca < 0)
+                {
+                    // reabriu o analyzer: continua somando ao que o grupo já tinha de mim
+                    var eu = GrupoServidor.Lista(grupoEstado, "membros").FirstOrDefault(m => GrupoServidor.Txt(m, "id") == grupoAtual[1]);
+                    var meus = GrupoServidor.Obj(eu, "dados");
+                    grupoEpoca = ep; NovaBaseGrupo(meus == null ? null : CamposGrupo.ToDictionary(k => k, k => GrupoServidor.Num(meus, k)));
+                    ReenviarLogo();
+                }
+                else if (ep != grupoEpoca)
+                {
+                    // o líder zerou a sessão do grupo: conta a partir de agora
+                    grupoEpoca = ep; NovaBaseGrupo(null); Log("grupo: sessão zerada pelo líder");
+                    ReenviarLogo();
+                }
+            }
             else if (GrupoServidor.Sim(r, "fora")) { SairDoGrupoLocal("O grupo acabou (o líder encerrou ou ficou 6 h parado)."); return; }
             else grupoErro = GrupoServidor.Txt(r, "erro") ?? "Não deu para atualizar agora. Tento de novo em 2 minutos.";
             DesenharGrupo();
@@ -174,6 +222,7 @@ namespace BloodstoneHunt
             {
                 grupoAtual = new[] { codigo, GrupoServidor.Txt(r, "membro"), GrupoServidor.Txt(r, "segredo"), n };
                 GrupoServidor.Atual = grupoAtual; grupoEstado = GrupoServidor.Obj(r, "estado");
+                grupoEpoca = GrupoServidor.Num(grupoEstado, "epoca"); NovaBaseGrupo(null);   // conta a partir de quando entrou
                 Log("grupo: entrou em " + codigo); w.Close();
                 grupoTimer.Start(); EnviarGrupo(false); MostrarJanelaGrupo();
             };
@@ -350,7 +399,25 @@ namespace BloodstoneHunt
                 var g = grupoAtual; SairDoGrupoLocal(null);
                 new Thread(() => { int st; GrupoServidor.Post("grupo", new Dictionary<string, object> { { "acao", "sair" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] } }, out st); }) { IsBackground = true }.Start();
             };
-            lin.Children.Add(enviar); lin.Children.Add(sair); c.Children.Add(lin);
+            lin.Children.Add(enviar);
+            if (souLider)
+            {
+                // zerar a sessão do grupo: só o líder (o servidor também confere)
+                var zerar = new Button { Content = "Zerar", Style = (Style)Application.Current.Resources["BotaoAtalho"], Padding = new Thickness(1, 0, 1, 0), ToolTip = "Zerar a sessão do grupo para todos (só o líder)" };
+                zerar.Click += (s, e) =>
+                {
+                    if (MessageBox.Show(janelaGrupo.W, "Zerar a sessão do grupo para todos?\n\nO loot, os supplies, o dano e a cura do grupo voltam a zero e a contagem recomeça agora. A sessão de cada um no Hunt Analyzer não muda.", Info.Nome, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+                    zerar.IsEnabled = false;
+                    var g = grupoAtual;
+                    new Thread(() =>
+                    {
+                        int st; var r = GrupoServidor.Post("grupo", new Dictionary<string, object> { { "acao", "zerar" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] } }, out st);
+                        janelas["hunt"].W.Dispatcher.BeginInvoke(new Action(() => RespostaGrupo(st, r)));
+                    }) { IsBackground = true }.Start();
+                };
+                lin.Children.Add(zerar);
+            }
+            lin.Children.Add(sair); c.Children.Add(lin);
         }
     }
 
@@ -376,7 +443,7 @@ namespace BloodstoneHunt
                 "{\"id\":\"aaaaaaaa\",\"nome\":\"Wizo Olfu\",\"lider\":true,\"atualizado\":" + agora + ",\"dados\":{\"loot\":61778,\"supplies\":33200,\"dano\":33800,\"cura\":0}}," +
                 "{\"id\":\"bbbbbbbb\",\"nome\":\"Shap Oddorowyna\",\"lider\":false,\"atualizado\":" + agora + ",\"dados\":{\"loot\":0,\"supplies\":28000,\"dano\":11304,\"cura\":2272}}," +
                 "{\"id\":\"cccccccc\",\"nome\":\"Valin Grato\",\"lider\":false,\"atualizado\":" + (agora - 9 * 60000) + ",\"dados\":{\"loot\":0,\"supplies\":38400,\"dano\":9674,\"cura\":0}}]}";
-            grupoAtual = new[] { "KX7P2M", "bbbbbbbb", "x", "Shap Oddorowyna" };
+            grupoAtual = new[] { "KX7P2M", "aaaaaaaa", "x", "Wizo Olfu" };
             grupoEstado = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
             grupoUltimoEnvio = DateTime.Now.AddMinutes(-1);
             MostrarJanelaGrupo(); Foto(janelaGrupo.W, Path.Combine(pasta, "party.png"));

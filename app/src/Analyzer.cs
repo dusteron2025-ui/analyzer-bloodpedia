@@ -830,6 +830,7 @@ namespace BloodstoneHunt
             ((Button)c.FindName("BtnZerar")).Click += (s, e) =>
             {
                 if (MessageBox.Show(hunt.W, "Zerar a sessão? Todo o progresso desta caçada será perdido.", Info.Nome, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+                SessaoLocalZerada();   // no grupo, o que já foi contado continua (só o líder zera o grupo)
                 lock (S.Trava) { var xp = S.XpUltimo; var vi = S.VidaUltima; var ma = S.ManaUltima; var at = S.Atual; S = new Sessao(); S.XpUltimo = xp; S.VidaUltima = vi; S.ManaUltima = ma; S.Atual = at; }
                 reiniciarCanais = true;
                 V.Loot.Clear(); V.Kills.Clear(); V.KillsResumo.Clear(); V.SuppliesLista.Clear(); V.RecebidoFontes.Clear(); V.RecebidoTipos.Clear();
