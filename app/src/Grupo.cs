@@ -2,8 +2,8 @@
 //
 // - Só líderes liberados pela equipe (chave de acesso) criam grupos; qualquer pessoa entra com o código de 6 letras.
 // - Até 6 pessoas. Cada analyzer envia os próprios números a cada 2 minutos (e em "Enviar agora" e ao fechar).
-// - O loot do grupo é o do líder (todos veem as mesmas mensagens de Pilhagem), então nada é contado em dobro;
-//   supplies, dano e cura são de cada um.
+// - Cada analyzer só vê o loot que a própria pessoa pegou, então o loot do grupo é a soma do de todos;
+//   supplies, dano e cura também são de cada um.
 // - Vai para o servidor só o essencial: o nome que a pessoa digitou, loot, supplies, dano e cura (e, para o líder, um
 //   hash do PC feito só para o modo grupo, que limita a chave a 1 PC). Ficam lá por 6 h desde a última atualização.
 using System;
@@ -124,7 +124,7 @@ namespace BloodstoneHunt
             if (EmGrupo) { grupoTimer.Start(); EnviarGrupo(false); }
         }
 
-        /** só o que o painel do grupo usa: loot (o servidor só aproveita o do líder), supplies em gp, dano e cura */
+        /** só o que o painel do grupo usa: loot, supplies em gp, dano e cura */
         Dictionary<string, object> DadosGrupo()
         {
             var agora = NumerosCacada();
@@ -323,11 +323,11 @@ namespace BloodstoneHunt
             long criado = GrupoServidor.Num(g, "criado"), agora = GrupoServidor.Num(g, "agora");
             Func<Dictionary<string, object>, string, long> n = (m, k) => GrupoServidor.Num(GrupoServidor.Obj(m, "dados"), k);
             var lider = membros.FirstOrDefault(m => GrupoServidor.Sim(m, "lider"));
-            long loot = lider != null ? n(lider, "loot") : 0, sup = membros.Sum(m => n(m, "supplies")), bal = loot - sup;
+            long loot = membros.Sum(m => n(m, "loot")), sup = membros.Sum(m => n(m, "supplies")), bal = loot - sup;
             double horas = Math.Max((agora - criado) / 3600000.0, 1.0 / 60);
             var dur = TimeSpan.FromMilliseconds(Math.Max(0, agora - criado));
             c.Children.Add(ParValor("Sessão:", string.Format("{0:00}:{1:00}h", (int)dur.TotalHours, dur.Minutes), "#E9EBEE"));
-            c.Children.Add(ParValor("Loot (do líder):", Inteiro(loot), "#F2B544"));
+            c.Children.Add(ParValor("Loot:", Inteiro(loot), "#F2B544"));
             c.Children.Add(ParValor("Supplies:", Inteiro(sup), "#E9EBEE"));
             c.Children.Add(ParValor("Balanço:", Inteiro(bal), bal >= 0 ? "#35D07F" : "#FF5A64"));
             c.Children.Add(ParValor("Balanço/h:", Inteiro((long)(bal / horas)), bal >= 0 ? "#35D07F" : "#FF5A64"));
@@ -338,7 +338,7 @@ namespace BloodstoneHunt
             {
                 bool eLider = GrupoServidor.Sim(m, "lider"), semDados = GrupoServidor.Obj(m, "dados") == null;
                 long at = GrupoServidor.Num(m, "atualizado"); bool parado = !semDados && agora - at > 5 * 60000;
-                long sm = n(m, "supplies"), bm = (eLider ? loot : 0) - sm;
+                long sm = n(m, "supplies"), lm = n(m, "loot"), bm = lm - sm;
                 // cartão da pessoa: nome em cima e três números com etiqueta (ícone + nome), para ler sem precisar adivinhar
                 var cartao = new Border { CornerRadius = new CornerRadius(7), Background = Cor("#1E2128"), BorderBrush = Cor(eLider ? "#4A4128" : "#2A2E35"), BorderThickness = new Thickness(1),
                     Padding = new Thickness(7, 4, 7, 5), Margin = new Thickness(0, 0, 0, 4), Opacity = semDados || parado ? 0.5 : 1 };
@@ -361,7 +361,7 @@ namespace BloodstoneHunt
                         s.Children.Add(new TextBlock { Text = v, FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = Cor(cor) });
                         Grid.SetColumn(s, i); l.Children.Add(s);
                     };
-                    col(0, "\U0001F4B0", "Balanço", Num(bm), bm >= 0 ? "#35D07F" : "#FF5A64", "Balanço: " + Inteiro(bm) + " gp\n(loot que está com a pessoa − " + Inteiro(sm) + " gp de supplies gastos)");
+                    col(0, "\U0001F4B0", "Balanço", Num(bm), bm >= 0 ? "#35D07F" : "#FF5A64", "Balanço: " + Inteiro(bm) + " gp\n(" +Inteiro(lm) + " gp de loot − " + Inteiro(sm) + " gp de supplies)");
                     col(1, "⚔", "Dano", Num(n(m, "dano")), "#FF9F5A", "Dano causado: " + Inteiro(n(m, "dano")));
                     col(2, "✚", "Cura", Num(n(m, "cura")), "#5B9BFF", "Vida recuperada: " + Inteiro(n(m, "cura")));
                     bloco.Children.Add(l);
@@ -369,17 +369,17 @@ namespace BloodstoneHunt
                 c.Children.Add(cartao);
             }
 
-            // divisão: todos terminam com o mesmo lucro; o líder (que tem o loot) paga a parte de cada um
+            // divisão: todos terminam com o mesmo lucro; o acerto passa pelo líder (quem ficou com mais paga a diferença)
             var comDados = membros.Where(m => GrupoServidor.Obj(m, "dados") != null).ToList();
             if (comDados.Count > 1 && lider != null)
             {
                 long parte = bal / comDados.Count;
                 c.Children.Add(new Border { Style = (Style)Application.Current.Resources["Separador"], Margin = new Thickness(0, 3, 0, 5) });
                 c.Children.Add(ParValor("Lucro de cada um:", Inteiro(parte), parte >= 0 ? "#35D07F" : "#FF5A64"));
-                c.Children.Add(Linha("Para dividir igual, quem tem o loot paga:", "#7D828C", 10.5));
+                c.Children.Add(Linha("Para dividir igual:", "#7D828C", 10.5));
                 foreach (var m in comDados.Where(x => !GrupoServidor.Sim(x, "lider")))
                 {
-                    long recebe = parte + n(m, "supplies");   // a parte do lucro mais o que gastou em supplies
+                    long recebe = parte - (n(m, "loot") - n(m, "supplies"));   // o que falta (ou sobra) para a pessoa ficar com a parte dela
                     var t = new TextBlock { FontSize = 10.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 1, 0, 0) };
                     if (recebe >= 0) { t.Inlines.Add(new System.Windows.Documents.Run("Líder → ") { Foreground = Cor("#7D828C") }); t.Inlines.Add(new System.Windows.Documents.Run(GrupoServidor.Txt(m, "nome")) { Foreground = Cor("#C9CDD4") }); }
                     else { t.Inlines.Add(new System.Windows.Documents.Run(GrupoServidor.Txt(m, "nome")) { Foreground = Cor("#C9CDD4") }); t.Inlines.Add(new System.Windows.Documents.Run(" → líder") { Foreground = Cor("#7D828C") }); }

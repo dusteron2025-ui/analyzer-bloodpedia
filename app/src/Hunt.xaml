@@ -10,7 +10,7 @@
       <Button x:Name="BtnTravar" Style="{StaticResource BotaoTitulo}" Content="&#xE785;" Opacity="0.45" ToolTip="Travar: o analyzer fica visível mas os cliques passam para o jogo (Ctrl+Shift+L)"/>
       <Button x:Name="BtnPausar" Style="{StaticResource BotaoTitulo}" Content="{Binding IconePausa}" ToolTip="Pausar / retomar"/>
       <Button x:Name="BtnZerar" Style="{StaticResource BotaoTitulo}" Content="&#xE72C;" ToolTip="Zerar sessão"/>
-      <Button x:Name="BtnFixar" Style="{StaticResource BotaoTitulo}" Content="&#xE718;" ToolTip="Manter por cima do jogo"/>
+      <Button x:Name="BtnFixar" Style="{StaticResource BotaoTitulo}" Content="&#xE718;" ToolTip="Manter por cima do jogo (só aparece com o Bloodstone na frente)"/>
     </StackPanel>
   </Grid>
   <Grid>

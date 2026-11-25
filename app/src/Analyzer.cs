@@ -695,6 +695,35 @@ namespace BloodstoneHunt
         string statusLeitor = "Procurando o client.exe…", statusCurto = "procurando o jogo"; int nivelStatus;
         StreamWriter log, bruto;
 
+        // "Manter por cima do jogo" preso ao jogo: as janelas só aparecem (e por cima) enquanto o Bloodstone ou o próprio
+        // analyzer está em primeiro plano. Ao trocar para outro programa ou minimizar o jogo, elas somem e não deixam
+        // passar o clique; voltam ao voltar para o jogo. Sem o jogo aberto, ficam normais.
+        [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+        bool sobreJogoVisivel = true, sobreJogoTopo = true;
+        void AcompanharJogo()
+        {
+            uint eu = (uint)Process.GetCurrentProcess().Id;
+            var t = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            t.Tick += (s, e) =>
+            {
+                var m = L != null ? L.M : null; uint jogo = m != null ? (uint)m.Pid : 0;
+                bool ver = true;
+                if (P.PorCima && jogo != 0)
+                {
+                    uint pid; GetWindowThreadProcessId(GetForegroundWindow(), out pid);
+                    ver = pid == jogo || pid == eu;
+                }
+                bool topo = P.PorCima && ver;
+                if (ver == sobreJogoVisivel && topo == sobreJogoTopo) return;
+                sobreJogoVisivel = ver; sobreJogoTopo = topo;
+                var todas = janelas.Values.Select(j => j.W).ToList();
+                if (trava != null && trava.Flutuante != null) todas.Add(trava.Flutuante);
+                foreach (var w in todas) { w.Opacity = ver ? 1 : 0; w.Topmost = topo || (w == (trava != null ? trava.Flutuante : null) && ver); }
+            };
+            t.Start();
+        }
+
         // chave, título, cor do selo, ícone (Segoe MDL2), largura
         static readonly string[][] Definicoes = {
             new[] { "hunt", "Hunt Analyzer", "#E5484D", "", "196" },
@@ -754,6 +783,7 @@ namespace BloodstoneHunt
             hunt.W.Show();
             trava = new Trava(hunt.W, (Button)hunt.Corpo.FindName("BtnTravar"), () => janelas.Values.Select(x => x.W));
             trava.Mudou += () => { var b = (Button)hunt.Corpo.FindName("BtnTravar"); b.Content = trava.Ligada ? "" : ""; b.Opacity = trava.Ligada ? 1 : 0.45; };
+            AcompanharJogo();
             Atualizacao.Verificar(hunt.W, Log, () => { SalvarPosicoes(); P.Salvar(); });
             if (!P.AvisoUso || !P.AvisoAdmin) AvisoInicial(hunt.W);
             Log("administrador: " + (SouAdministrador() ? "sim" : "não"));

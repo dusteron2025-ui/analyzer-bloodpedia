@@ -43,8 +43,8 @@ namespace BloodstoneHunt
             long agora = 1800000000000, criado = agora - 47 * 60000;
             var json = "{\"codigo\":\"KX7P2M\",\"criado\":" + criado + ",\"agora\":" + agora + ",\"lider\":\"aaaaaaaa\",\"epoca\":0,\"membros\":[" +
                 "{\"id\":\"aaaaaaaa\",\"nome\":\"Eduzinho\",\"lider\":true,\"atualizado\":" + (agora - 60000) + ",\"dados\":{\"loot\":182400,\"supplies\":21300,\"dano\":52800,\"cura\":4100}}," +
-                "{\"id\":\"bbbbbbbb\",\"nome\":\"Arqueira Lia\",\"lider\":false,\"atualizado\":" + (agora - 60000) + ",\"dados\":{\"loot\":0,\"supplies\":18700,\"dano\":41200,\"cura\":9850}}," +
-                "{\"id\":\"cccccccc\",\"nome\":\"Xamã Torr\",\"lider\":false,\"atualizado\":" + (agora - 120000) + ",\"dados\":{\"loot\":0,\"supplies\":15900,\"dano\":36700,\"cura\":12300}}]}";
+                "{\"id\":\"bbbbbbbb\",\"nome\":\"Arqueira Lia\",\"lider\":false,\"atualizado\":" + (agora - 60000) + ",\"dados\":{\"loot\":96500,\"supplies\":18700,\"dano\":41200,\"cura\":9850}}," +
+                "{\"id\":\"cccccccc\",\"nome\":\"Xamã Torr\",\"lider\":false,\"atualizado\":" + (agora - 120000) + ",\"dados\":{\"loot\":71200,\"supplies\":15900,\"dano\":36700,\"cura\":12300}}]}";
             grupoAtual = souLider ? new[] { "KX7P2M", "aaaaaaaa", "x", "Eduzinho" } : new[] { "KX7P2M", "bbbbbbbb", "x", "Arqueira Lia" };
             grupoEstado = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
             grupoUltimoEnvio = DateTime.Now.AddMinutes(-1);
@@ -158,23 +158,23 @@ namespace BloodstoneHunt
             GrupoExemplo(false); DesenharGrupo(); var partyMembro = Print2x(janelaGrupo.W);
 
             var lider = MontarTutorial("PARA O LÍDER", "Hunt em grupo", "Crie o grupo, passe o código para a party (até 6 pessoas) e acompanhem a caçada juntos.", "#F5C35B", new List<PassoTut> {
-                new PassoTut { Titulo = "Abra o Hunt em grupo", Texto = "Atualize o analyzer para a versão **1.0.9 ou mais nova** (ao abrir, clique em **Atualizar agora**). No Hunt Analyzer, clique em **Hunt em grupo**.", Imagem = botao, Escala = 2.0 },
+                new PassoTut { Titulo = "Abra o Hunt em grupo", Texto = "Atualize o analyzer para a versão **1.0.10 ou mais nova** (ao abrir, clique em **Atualizar agora**). No Hunt Analyzer, clique em **Hunt em grupo**.", Imagem = botao, Escala = 2.0 },
                 new PassoTut { Titulo = "Crie o grupo com a sua chave", Texto = "Digite o **nome do seu personagem**. Em **Criar um grupo (líder)**, cole a **chave de líder** que a equipe te mandou e clique em **Ativar e criar**. A chave é só sua e vale em **1 PC**.", Imagem = dlgLider, Escala = 1.25 },
                 new PassoTut { Titulo = "Passe o código para a party", Texto = "A janela **Party Hunt** abre com o **código de 6 letras** (ex.: KX7P2M). Clique no ícone ao lado dele para copiar e mande para quem vai caçar com você.", Imagem = codigo, Escala = 1.8 },
-                new PassoTut { Titulo = "Cacem e acompanhem", Texto = "Os números de todos chegam a **cada 2 minutos** (ou em **Enviar agora**). Você vê o loot, os supplies e o balanço do grupo e o balanço, o dano e a cura de cada um. No fim, a janela mostra **quanto você paga para cada um** para todos lucrarem igual. **Zerar** recomeça a contagem para todos e **Encerrar** termina o grupo.", Imagem = partyLider, Escala = 1.25 },
+                new PassoTut { Titulo = "Cacem e acompanhem", Texto = "Os números de todos chegam a **cada 2 minutos** (ou em **Enviar agora**). Você vê o loot, os supplies e o balanço do grupo e o balanço, o dano e a cura de cada um. No fim, a janela mostra **quem paga quanto** para todos lucrarem igual. **Zerar** recomeça a contagem para todos e **Encerrar** termina o grupo.", Imagem = partyLider, Escala = 1.25 },
             }, new[] {
-                "Deixe a aba **Pilhagem** ativa no chat: só o **loot do líder** conta, para nada ser contado em dobro.",
+                "Todos devem deixar a aba **Pilhagem** ativa no chat: cada analyzer conta o **loot de quem está nele**.",
                 "Abre o Bloodstone **como administrador**? Abra o analyzer do mesmo jeito (o analyzer avisa se precisar).",
                 "Fechou o analyzer sem querer? Abra de novo: ele **volta sozinho** para o grupo.",
             });
             SalvarTutorial(lider, Path.Combine(pasta, "tutorial-lider.png"));
 
             var membro = MontarTutorial("PARA QUEM VAI PARTICIPAR", "Hunt em grupo", "Entre no grupo do líder com o código e acompanhe a caçada da party. Não precisa de chave.", "#B38CFF", new List<PassoTut> {
-                new PassoTut { Titulo = "Abra o Hunt em grupo", Texto = "Atualize o analyzer para a versão **1.0.9 ou mais nova** (ao abrir, clique em **Atualizar agora**). No Hunt Analyzer, clique em **Hunt em grupo**.", Imagem = botao, Escala = 2.0 },
+                new PassoTut { Titulo = "Abra o Hunt em grupo", Texto = "Atualize o analyzer para a versão **1.0.10 ou mais nova** (ao abrir, clique em **Atualizar agora**). No Hunt Analyzer, clique em **Hunt em grupo**.", Imagem = botao, Escala = 2.0 },
                 new PassoTut { Titulo = "Entre com o código do líder", Texto = "Digite o **nome do seu personagem**. Em **Entrar num grupo**, digite o **código de 6 letras** que o líder passou e clique em **Entrar**.", Imagem = dlgMembro, Escala = 1.25 },
-                new PassoTut { Titulo = "Cace normalmente", Texto = "Seus números (supplies, dano e cura) vão para o grupo **a cada 2 minutos**, ou na hora em **Enviar agora**. O seu cartão aparece com **(você)**. No fim, a janela mostra **quanto o líder te paga** para todos lucrarem igual. Para sair, clique em **Sair**.", Imagem = partyMembro, Escala = 1.25 },
+                new PassoTut { Titulo = "Cace normalmente", Texto = "Seus números (loot, supplies, dano e cura) vão para o grupo **a cada 2 minutos**, ou na hora em **Enviar agora**. O seu cartão aparece com **(você)**. No fim, a janela mostra **o acerto com o líder** para todos lucrarem igual. Para sair, clique em **Sair**.", Imagem = partyMembro, Escala = 1.25 },
             }, new[] {
-                "O **loot é contado pelo líder**: por isso o seu balanço aparece negativo até a divisão no fim.",
+                "Deixe a aba **Pilhagem** ativa no chat: é por ela que o analyzer conta o **seu loot**.",
                 "Abre o Bloodstone **como administrador**? Abra o analyzer do mesmo jeito (o analyzer avisa se precisar).",
                 "No grupo vão só o seu **nome** e os números da caçada, apagados 6 h depois. Nada da sua conta ou do seu PC.",
             });

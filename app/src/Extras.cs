@@ -23,7 +23,7 @@ namespace BloodstoneHunt
     static class Info
     {
         public const string Nome = "Analyzer Bloodpedia";
-        public const string Versao = "1.0.9";
+        public const string Versao = "1.0.10";
         // repositório público onde ficam as versões (GitHub Releases)
         public const string Repositorio = "dusteron2025-ui/analyzer-bloodpedia";
     }
@@ -41,6 +41,7 @@ namespace BloodstoneHunt
 
         readonly Func<IEnumerable<Window>> janelas; readonly Button botao; readonly Window dono;
         Window flutuante; public bool Ligada { get; private set; }
+        public Window Flutuante { get { return flutuante; } }
         public event Action Mudou;
 
         public Trava(Window dono, Button botao, Func<IEnumerable<Window>> janelas)
