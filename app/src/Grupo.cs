@@ -130,6 +130,8 @@ namespace BloodstoneHunt
             var agora = NumerosCacada();
             var env = CamposGrupo.ToDictionary(k => k, k => Math.Max(0, agora[k] - (grupoBase != null ? grupoBase[k] : 0)));
             grupoUltimoEnviado = env;
+            // registro no analyzer.log para entender um cartão zerado: o que vai, a sessão inteira e se está lendo o jogo
+            Log("grupo: envio " + string.Join(" ", CamposGrupo.Select(k => k + "=" + env[k] + "/" + agora[k])) + " época=" + grupoEpoca + " lendo o jogo: " + (L != null && L.M != null ? "sim" : "não (" + statusCurto + ")"));
             return env.ToDictionary(x => x.Key, x => (object)x.Value);
         }
 
@@ -316,6 +318,12 @@ namespace BloodstoneHunt
             cab.Children.Add(copiar); c.Children.Add(cab);
             var atual = grupoUltimoEnvio == DateTime.MinValue ? "enviando…" : "atualizado há " + Math.Max(0, (int)(DateTime.Now - grupoUltimoEnvio).TotalMinutes) + " min";
             c.Children.Add(Linha(grupoErro ?? (atual + " · a cada 2 min"), grupoErro != null ? "#FF8A8A" : "#626772", 10.5));
+            if (L == null || L.M == null)
+            {
+                // sem ler o jogo, os números desta pessoa vão zerados para o grupo
+                var av = Paragrafo("Este analyzer não está lendo o jogo (" + statusCurto + "), então os seus números vão zerados para o grupo." + (statusCurto == "precisa de administrador" ? " Feche e abra o analyzer como administrador." : ""), "#FF8A8A");
+                av.Margin = new Thickness(0, 4, 0, 0); c.Children.Add(av);
+            }
             c.Children.Add(new Border { Style = (Style)Application.Current.Resources["Separador"], Margin = new Thickness(0, 5, 0, 5) });
 
             var membros = GrupoServidor.Lista(g, "membros").ToList();
