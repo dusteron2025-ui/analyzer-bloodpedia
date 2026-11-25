@@ -202,6 +202,9 @@ namespace BloodstoneHunt
             st.Children.Add(Separador());
             st.Children.Add(Titulo("Criar um grupo (líder)"));
             var temAcesso = GrupoServidor.TokenAcesso != null;
+#if TESTE
+            if (TutorialTeste.SemChaveSalva) temAcesso = false;
+#endif
             var chave = Caixa(""); chave.CharacterCasing = CharacterCasing.Upper;
             var criar = Botao(temAcesso ? "Criar grupo" : "Ativar e criar");
             if (!temAcesso)
