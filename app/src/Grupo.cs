@@ -287,23 +287,34 @@ namespace BloodstoneHunt
                 bool eLider = GrupoServidor.Sim(m, "lider"), semDados = GrupoServidor.Obj(m, "dados") == null;
                 long at = GrupoServidor.Num(m, "atualizado"); bool parado = !semDados && agora - at > 5 * 60000;
                 long sm = n(m, "supplies"), bm = (eLider ? loot : 0) - sm;
-                var bloco = new StackPanel { Margin = new Thickness(0, 0, 0, 5), Opacity = semDados || parado ? 0.5 : 1 };
+                // cartão da pessoa: nome em cima e três números com etiqueta (ícone + nome), para ler sem precisar adivinhar
+                var cartao = new Border { CornerRadius = new CornerRadius(7), Background = Cor("#1E2128"), BorderBrush = Cor(eLider ? "#4A4128" : "#2A2E35"), BorderThickness = new Thickness(1),
+                    Padding = new Thickness(7, 4, 7, 5), Margin = new Thickness(0, 0, 0, 4), Opacity = semDados || parado ? 0.5 : 1 };
+                var bloco = new StackPanel(); cartao.Child = bloco;
                 var nome = Linha((eLider ? "\U0001F451 " : "") + GrupoServidor.Txt(m, "nome") + (GrupoServidor.Txt(m, "id") == eu ? " (você)" : ""), eLider ? "#F2C94C" : "#E9EBEE", 11.5, FontWeights.SemiBold);
                 if (parado) nome.ToolTip = "Sem atualização há mais de 5 minutos";
                 bloco.Children.Add(nome);
-                if (semDados) bloco.Children.Add(Linha("   esperando o primeiro envio…", "#626772", 10.5));
+                if (semDados) bloco.Children.Add(Linha("esperando o primeiro envio…", "#626772", 10.5));
                 else
                 {
-                    var l = new Grid();
+                    var l = new Grid { Margin = new Thickness(0, 3, 0, 0) };
                     for (int i = 0; i < 3; i++) l.ColumnDefinitions.Add(new ColumnDefinition());
-                    Action<int, string, string, string> col = (i, ic, v, cor) => { var t = new TextBlock { FontSize = 10.5 }; t.Inlines.Add(new System.Windows.Documents.Run(ic + " ") { Foreground = Cor("#7D828C") }); t.Inlines.Add(new System.Windows.Documents.Run(v) { Foreground = Cor(cor) }); Grid.SetColumn(t, i); l.Children.Add(t); };
-                    col(0, "⇅", Num(bm), bm >= 0 ? "#35D07F" : "#FF5A64");
-                    col(1, "✖", Num(n(m, "dano")), "#E9EBEE");
-                    col(2, "✚", Num(n(m, "cura")), "#5B9BFF");
-                    l.ToolTip = "Balanço " + Inteiro(bm) + " · Supplies " + Inteiro(sm) + " · Dano " + Inteiro(n(m, "dano")) + " · Cura " + Inteiro(n(m, "cura"));
-                    l.Margin = new Thickness(10, 1, 0, 0); bloco.Children.Add(l);
+                    Action<int, string, string, string, string, string> col = (i, ic, rotulo, v, cor, dica) =>
+                    {
+                        var s = new StackPanel { ToolTip = dica };
+                        var et = new TextBlock { FontSize = 9.5 };
+                        et.Inlines.Add(new System.Windows.Documents.Run(ic + " ") { Foreground = Cor(cor), FontFamily = new FontFamily("Segoe UI Emoji, Segoe UI Symbol") });
+                        et.Inlines.Add(new System.Windows.Documents.Run(rotulo) { Foreground = Cor("#7D828C") });
+                        s.Children.Add(et);
+                        s.Children.Add(new TextBlock { Text = v, FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = Cor(cor) });
+                        Grid.SetColumn(s, i); l.Children.Add(s);
+                    };
+                    col(0, "\U0001F4B0", "Balanço", Num(bm), bm >= 0 ? "#35D07F" : "#FF5A64", "Balanço: " + Inteiro(bm) + " gp\n(loot que está com a pessoa − " + Inteiro(sm) + " gp de supplies gastos)");
+                    col(1, "⚔", "Dano", Num(n(m, "dano")), "#FF9F5A", "Dano causado: " + Inteiro(n(m, "dano")));
+                    col(2, "✚", "Cura", Num(n(m, "cura")), "#5B9BFF", "Vida recuperada: " + Inteiro(n(m, "cura")));
+                    bloco.Children.Add(l);
                 }
-                c.Children.Add(bloco);
+                c.Children.Add(cartao);
             }
 
             // divisão: todos terminam com o mesmo lucro; o líder (que tem o loot) paga a parte de cada um
@@ -369,6 +380,7 @@ namespace BloodstoneHunt
             grupoEstado = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
             grupoUltimoEnvio = DateTime.Now.AddMinutes(-1);
             MostrarJanelaGrupo(); Foto(janelaGrupo.W, Path.Combine(pasta, "party.png"));
+            Foto(janelas["hunt"].W, Path.Combine(pasta, "hunt.png"));
             grupoAtual = null; AbrirGrupo();
             var dlg = Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x.Title == "Caçada em grupo");
             if (dlg != null) Foto(dlg, Path.Combine(pasta, "entrar.png"));
