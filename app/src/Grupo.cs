@@ -170,7 +170,7 @@ namespace BloodstoneHunt
                     ReenviarLogo();
                 }
             }
-            else if (GrupoServidor.Sim(r, "fora")) { SairDoGrupoLocal("O grupo acabou (o líder encerrou ou ficou 6 h parado)."); return; }
+            else if (GrupoServidor.Sim(r, "fora")) { SairDoGrupoLocal("Você não está mais no grupo: o líder te removeu, encerrou o grupo ou ele ficou 6 h parado."); return; }
             else grupoErro = GrupoServidor.Txt(r, "erro") ?? "Não deu para atualizar agora. Tento de novo em 2 minutos.";
             DesenharGrupo();
         }
@@ -342,6 +342,7 @@ namespace BloodstoneHunt
             c.Children.Add(new Border { Style = (Style)Application.Current.Resources["Separador"], Margin = new Thickness(0, 5, 0, 5) });
 
             // cada um: balanço (loot que tem − supplies que gastou), supplies, dano e cura
+            bool souLider = lider != null && GrupoServidor.Txt(lider, "id") == eu;
             foreach (var m in membros)
             {
                 bool eLider = GrupoServidor.Sim(m, "lider"), semDados = GrupoServidor.Obj(m, "dados") == null;
@@ -353,7 +354,16 @@ namespace BloodstoneHunt
                 var bloco = new StackPanel(); cartao.Child = bloco;
                 var nome = Linha((eLider ? "\U0001F451 " : "") + GrupoServidor.Txt(m, "nome") + (GrupoServidor.Txt(m, "id") == eu ? " (você)" : ""), eLider ? "#F2C94C" : "#E9EBEE", 11.5, FontWeights.SemiBold);
                 if (parado) nome.ToolTip = "Sem atualização há mais de 5 minutos";
-                bloco.Children.Add(nome);
+                var topo = new Grid(); topo.Children.Add(nome); bloco.Children.Add(topo);
+                if (souLider && !eLider)
+                {
+                    // o líder pode tirar alguém do grupo (por exemplo, quem saiu da party e ficou no grupo)
+                    string alvoId = GrupoServidor.Txt(m, "id"), alvoNome = GrupoServidor.Txt(m, "nome");
+                    var tirar = new Button { Style = (Style)Application.Current.Resources["BotaoTitulo"], Content = "", ToolTip = "Remover " + alvoNome + " do grupo", HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, -2, -4, 0) };
+                    nome.Margin = new Thickness(0, 0, 18, 0);
+                    tirar.Click += (s, e) => RemoverDoGrupo(alvoId, alvoNome);
+                    topo.Children.Add(tirar);
+                }
                 if (semDados) bloco.Children.Add(Linha("esperando o primeiro envio…", "#626772", 10.5));
                 else
                 {
@@ -396,6 +406,17 @@ namespace BloodstoneHunt
                 }
             }
             Rodape(c, lider != null && GrupoServidor.Txt(lider, "id") == eu);
+        }
+
+        void RemoverDoGrupo(string alvo, string nomeAlvo)
+        {
+            if (MessageBox.Show(janelaGrupo.W, "Remover " + nomeAlvo + " do grupo?\n\nOs números dessa pessoa saem da conta do grupo. Ela pode entrar de novo com o código.", Info.Nome, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            var g = grupoAtual;
+            new Thread(() =>
+            {
+                int st; var r = GrupoServidor.Post("grupo", new Dictionary<string, object> { { "acao", "remover" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] }, { "alvo", alvo } }, out st);
+                janelas["hunt"].W.Dispatcher.BeginInvoke(new Action(() => { if (st == 200) Log("grupo: removeu " + nomeAlvo); RespostaGrupo(st, r); }));
+            }) { IsBackground = true }.Start();
         }
 
         void Rodape(StackPanel c, bool souLider)
