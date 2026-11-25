@@ -1,7 +1,7 @@
 // Analyzer Bloodpedia — caçada em grupo (Party Hunt), servidor separado da wiki: https://grupo.bloodpedia.com.br
 //
 // - Só líderes liberados pela equipe (chave de acesso) criam grupos; qualquer pessoa entra com o código de 6 letras.
-// - Até 6 pessoas. Cada analyzer envia os próprios números a cada 2 minutos (e em "Enviar agora" e ao fechar).
+// - Até 6 pessoas. Cada analyzer envia os próprios números a cada 1 minuto (e em "Enviar agora" e ao fechar).
 // - O loot do grupo é o do líder (todos veem as mesmas mensagens de Pilhagem), então nada é contado em dobro;
 //   supplies, dano e cura são de cada um.
 // - Vai para o servidor só o essencial: o nome que a pessoa digitou, loot, supplies, dano e cura (e, para o líder, um
@@ -78,7 +78,7 @@ namespace BloodstoneHunt
 
     partial class Programa
     {
-        const int IntervaloGrupo = 120;   // segundos entre os envios
+        const int IntervaloGrupo = 60;    // segundos entre os envios (cada envio também traz os números dos outros)
         string[] grupoAtual;              // código, membro, segredo, nome
         Dictionary<string, object> grupoEstado; DateTime grupoUltimoEnvio = DateTime.MinValue; string grupoErro;
         DispatcherTimer grupoTimer; volatile bool grupoEnviando; Janela janelaGrupo; StackPanel grupoCorpo;
@@ -89,6 +89,11 @@ namespace BloodstoneHunt
         static readonly string[] CamposGrupo = { "loot", "supplies", "dano", "cura" };
 
         bool EmGrupo { get { return grupoAtual != null; } }
+#if TESTE
+        bool EmTutorial { get { return TutorialTeste.SemChaveSalva; } }   // imagens de tutorial: sem o aviso de "não está lendo o jogo"
+#else
+        bool EmTutorial { get { return false; } }
+#endif
 
         Dictionary<string, long> NumerosCacada()
         {
@@ -171,7 +176,7 @@ namespace BloodstoneHunt
                 }
             }
             else if (GrupoServidor.Sim(r, "fora")) { SairDoGrupoLocal("Você não está mais no grupo: o líder te removeu, encerrou o grupo ou ele ficou 6 h parado."); return; }
-            else grupoErro = GrupoServidor.Txt(r, "erro") ?? "Não deu para atualizar agora. Tento de novo em 2 minutos.";
+            else grupoErro = GrupoServidor.Txt(r, "erro") ?? "Não deu para atualizar agora. Tento de novo em 1 minuto.";
             DesenharGrupo();
         }
         void SairDoGrupoLocal(string motivo)
@@ -191,7 +196,8 @@ namespace BloodstoneHunt
             var st = new StackPanel();
             st.Children.Add(Paragrafo("Juntem até 6 analyzers e vejam o loot, os supplies e o balanço do grupo e de cada um."));
             st.Children.Add(new TextBlock { Text = "Nome do seu personagem", Foreground = Cor("#8B909A"), FontSize = 10.5, Margin = new Thickness(0, 2, 0, 3) });
-            var nome = Caixa(File.Exists(GrupoServidor.ArqNome) ? File.ReadAllText(GrupoServidor.ArqNome).Trim() : "");
+            // o nome do personagem lido do jogo vem primeiro; senão, o último que a pessoa digitou
+            var nome = Caixa(nomePersonagem ?? (File.Exists(GrupoServidor.ArqNome) ? File.ReadAllText(GrupoServidor.ArqNome).Trim() : ""));
             st.Children.Add(nome);
             st.Children.Add(Separador());
             st.Children.Add(Titulo("Entrar num grupo"));
@@ -317,8 +323,8 @@ namespace BloodstoneHunt
             copiar.Click += (s, e) => { try { Clipboard.SetText(grupoAtual[0]); copiar.Content = ""; } catch { } };
             cab.Children.Add(copiar); c.Children.Add(cab);
             var atual = grupoUltimoEnvio == DateTime.MinValue ? "enviando…" : "atualizado há " + Math.Max(0, (int)(DateTime.Now - grupoUltimoEnvio).TotalMinutes) + " min";
-            c.Children.Add(Linha(grupoErro ?? (atual + " · a cada 2 min"), grupoErro != null ? "#FF8A8A" : "#626772", 10.5));
-            if (L == null || L.M == null)
+            c.Children.Add(Linha(grupoErro ?? (atual + " · a cada 1 min"), grupoErro != null ? "#FF8A8A" : "#626772", 10.5));
+            if ((L == null || L.M == null) && !EmTutorial)
             {
                 // sem ler o jogo, os números desta pessoa vão zerados para o grupo
                 var av = Paragrafo("Este analyzer não está lendo o jogo (" + statusCurto + "), então os seus números vão zerados para o grupo." + (statusCurto == "precisa de administrador" ? " Feche e abra o analyzer como administrador." : ""), "#FF8A8A");
@@ -355,12 +361,15 @@ namespace BloodstoneHunt
                 var nome = Linha((eLider ? "\U0001F451 " : "") + GrupoServidor.Txt(m, "nome") + (GrupoServidor.Txt(m, "id") == eu ? " (você)" : ""), eLider ? "#F2C94C" : "#E9EBEE", 11.5, FontWeights.SemiBold);
                 if (parado) nome.ToolTip = "Sem atualização há mais de 5 minutos";
                 var topo = new Grid(); topo.Children.Add(nome); bloco.Children.Add(topo);
+                // há quanto tempo os números desta pessoa chegaram ao servidor
+                var idade = semDados ? null : Linha(Math.Max(0, (agora - at) / 60000) == 0 ? "agora" : "há " + Math.Max(0, (agora - at) / 60000) + " min", "#626772", 9.5);
+                if (idade != null) { idade.HorizontalAlignment = HorizontalAlignment.Right; idade.VerticalAlignment = VerticalAlignment.Center; idade.ToolTip = "Última atualização dos números desta pessoa"; topo.Children.Add(idade); nome.Margin = new Thickness(0, 0, 44, 0); }
                 if (souLider && !eLider)
                 {
                     // o líder pode tirar alguém do grupo (por exemplo, quem saiu da party e ficou no grupo)
                     string alvoId = GrupoServidor.Txt(m, "id"), alvoNome = GrupoServidor.Txt(m, "nome");
                     var tirar = new Button { Style = (Style)Application.Current.Resources["BotaoTitulo"], Content = "", ToolTip = "Remover " + alvoNome + " do grupo", HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, -2, -4, 0) };
-                    nome.Margin = new Thickness(0, 0, 18, 0);
+                    nome.Margin = new Thickness(0, 0, idade != null ? 62 : 18, 0); if (idade != null) idade.Margin = new Thickness(0, 0, 18, 0);
                     tirar.Click += (s, e) => RemoverDoGrupo(alvoId, alvoNome);
                     topo.Children.Add(tirar);
                 }
