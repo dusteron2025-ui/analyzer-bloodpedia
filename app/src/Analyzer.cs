@@ -35,7 +35,7 @@ namespace BloodstoneHunt
         public string Versao = "1.49";
         // vida/mana: [base+EstadoJogo] +0x1F0 -> jogo; jogo+0x1F0 -> std::map de jogadores (head, size); nó+0x78 = nível, vida, vidaMax, mana, manaMax
         public long EstadoJogo = 0x3779C8;
-        public int Jogo = 0x1F0, MapaJogadores = 0x1F0, Status = 0x78;
+        public int Jogo = 0x1F0, MapaJogadores = 0x1F0, Status = 0x78, Nome = 0x74;   // Nome: QString com o nome do personagem no nó do jogador (0 = não lê)
         // itens: tabela de tipos (quantidade, ponteiro), marca (vtable) dos objetos de item, tipo em +0x10 e quantidade (u16) em +0x14
         public long TabelaItens = 0x3680C4, VtableItem = 0x27A624;
         public int ItemTipo = 0x10, ItemQtd = 0x14, ItemTotal = 0xA8;   // ItemTotal: total que o personagem carrega, no tipo do item
@@ -64,6 +64,7 @@ namespace BloodstoneHunt
                     case "jogo": o.Jogo = (int)n; break;
                     case "mapa_jogadores": o.MapaJogadores = (int)n; break;
                     case "status": o.Status = (int)n; break;
+                    case "nome": o.Nome = (int)n; break;
                     case "tabela_itens": o.TabelaItens = n; break;
                     case "vtable_item": o.VtableItem = n; break;
                     case "item_tipo": o.ItemTipo = (int)n; break;
@@ -80,8 +81,8 @@ namespace BloodstoneHunt
                 File.WriteAllText(arquivo, string.Format(
                     "; Endereços do client.exe (relativos ao início do módulo). Mudam quando o jogo atualiza.\r\n" +
                     "versao = {0}\r\nexperiencia = 0x{1:X}\r\ncanais = 0x{2:X}\r\ncanal_nome = 0x{3:X}\r\ncanal_mapa = 0x{4:X}\r\nmsg_hora = 0x{5:X}\r\nmsg_texto = 0x{6:X}\r\n" +
-                    "estado_jogo = 0x{7:X}\r\njogo = 0x{8:X}\r\nmapa_jogadores = 0x{9:X}\r\nstatus = 0x{10:X}\r\ntabela_itens = 0x{11:X}\r\nvtable_item = 0x{12:X}\r\nitem_tipo = 0x{13:X}\r\nitem_qtd = 0x{14:X}\r\nitem_total = 0x{15:X}\r\n",
-                    Versao, Experiencia, Canais, CanalNome, CanalMapa, MsgHora, MsgTexto, EstadoJogo, Jogo, MapaJogadores, Status, TabelaItens, VtableItem, ItemTipo, ItemQtd, ItemTotal));
+                    "estado_jogo = 0x{7:X}\r\njogo = 0x{8:X}\r\nmapa_jogadores = 0x{9:X}\r\nstatus = 0x{10:X}\r\nnome = 0x{16:X}\r\ntabela_itens = 0x{11:X}\r\nvtable_item = 0x{12:X}\r\nitem_tipo = 0x{13:X}\r\nitem_qtd = 0x{14:X}\r\nitem_total = 0x{15:X}\r\n",
+                    Versao, Experiencia, Canais, CanalNome, CanalMapa, MsgHora, MsgTexto, EstadoJogo, Jogo, MapaJogadores, Status, TabelaItens, VtableItem, ItemTipo, ItemQtd, ItemTotal, Nome));
             }
             catch { }
         }
@@ -211,6 +212,21 @@ namespace BloodstoneHunt
 
         // ---- vida e mana do personagem ----
         uint noJogador;
+        public uint NoJogador { get { return noJogador; } }
+        /** nome do personagem: QString no nó do jogador (offset "nome" do offsets.ini; 0 = não lê) */
+        public string LerNome()
+        {
+            if (O.Nome <= 0 || noJogador == 0) return null;
+            var n = M.QString(noJogador + O.Nome, 40);
+            return n != null && n.Length >= 2 && n.All(ch => char.IsLetterOrDigit(ch) || ch == ' ' || ch == '\'' || ch == '-' || ch == '_') ? n : null;
+        }
+        /** todos os nós do mapa de jogadores (para a ferramenta que procura o offset do nome) */
+        public List<uint> NosMapa()
+        {
+            uint est, jogo, head, root; var nos = new List<uint>();
+            if (!M.U32(M.Base + O.EstadoJogo, out est) || !M.U32(est + O.Jogo, out jogo) || !M.U32(jogo + O.MapaJogadores, out head) || !M.U32(head + 4, out root) || root < 0x10000) return nos;
+            Coletar(root, head, nos, 0); return nos;
+        }
         public StatusJogador LerStatus()
         {
             uint est, jogo, head, root; uint tam;
@@ -426,7 +442,7 @@ namespace BloodstoneHunt
         readonly string pasta;
         public Preferencias()
         {
-            pasta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BloodstoneHunt");
+            pasta = Instancia.Pasta(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BloodstoneHunt"));   // 2º analyzer em diante: subpasta própria
             try
             {
                 Directory.CreateDirectory(pasta);
@@ -618,6 +634,8 @@ namespace BloodstoneHunt
     {
         public string Status { get { return (string)G("Status"); } }
         public string StatusCurto { get { return (string)G("StatusCurto"); } }
+        public string Personagem { get { return (string)G("Personagem"); } }
+        public Visibility PersonagemVis { get { var o = G("PersonagemVis"); return o == null ? Visibility.Collapsed : (Visibility)o; } }
         public Brush CorStatus { get { return (Brush)G("CorStatus"); } }
         public string IconePausa { get { return (string)G("IconePausa"); } }
         public string Tempo { get { return (string)G("Tempo"); } }
@@ -693,6 +711,7 @@ namespace BloodstoneHunt
         readonly Acompanhante acPilhagem = new Acompanhante(), acServidor = new Acompanhante();
         volatile bool rodando = true; volatile bool reiniciarCanais;
         string statusLeitor = "Procurando o client.exe…", statusCurto = "procurando o jogo"; int nivelStatus;
+        volatile string nomePersonagem;   // lido da memória quando o offset "nome" está no offsets.ini
         StreamWriter log, bruto;
 
         // "Manter por cima do jogo" preso ao jogo: as janelas só aparecem (e por cima) enquanto o Bloodstone ou o próprio
@@ -748,6 +767,7 @@ namespace BloodstoneHunt
             if (args.Length == 2 && args[0] == "--testar-uso") { var lg = new StringBuilder(); var rr = Licenca.Checar(x => lg.AppendLine(x)); lg.AppendLine("bloqueado=" + rr.Bloqueado + " licenciado=" + rr.Licenciado); File.WriteAllText(args[1], lg.ToString()); return; }
             if (args.Length == 2 && args[0] == "--testar-servidor-grupo") { int st; var r = GrupoServidor.Post("grupo", new Dictionary<string, object> { { "acao", "entrar" }, { "codigo", "AAAAAA" }, { "nome", "Teste" } }, out st); File.WriteAllText(args[1], st + " " + GrupoServidor.Txt(r, "erro"), Encoding.UTF8); return; }
             if (args.Length == 2 && args[0] == "--tutorial-grupo") { p.TutorialGrupo(args[1]); return; }
+            if (args.Length == 2 && args[0] == "--achar-nome") { p.AcharNome(args[1]); return; }
             if (args.Length == 2 && args[0] == "--testar-grupo") { p.TestarGrupo(args[1]); return; }
             if (args.Length == 2 && args[0] == "--testar-janelas") { p.TestarJanelas(args[1]); return; }
             if (args.Length == 5 && args[0] == "--testar-atualizacao") { string h; using (var f = File.OpenRead(args[2])) h = BitConverter.ToString(System.Security.Cryptography.SHA256.Create().ComputeHash(f)).Replace("-", "").ToLowerInvariant(); File.WriteAllText(args[4], Atualizacao.AssinaturaValida(args[1], h, File.ReadAllText(args[3])) ? "VALIDA" : "INVALIDA"); return; }
@@ -771,6 +791,7 @@ namespace BloodstoneHunt
 
         void Iniciar(Application app)
         {
+            Instancia.Pegar();   // 1º, 2º… analyzer aberto (cada um no seu cliente)
             Carregar();
             try { log = new StreamWriter(Path.Combine(P.PastaLog, "analyzer.log"), false, Encoding.UTF8) { AutoFlush = true }; } catch { }
             try { bruto = new StreamWriter(Path.Combine(P.PastaLog, "mensagens.log"), false, Encoding.UTF8) { AutoFlush = true }; } catch { }
@@ -1218,15 +1239,20 @@ namespace BloodstoneHunt
                 {
                     if (L.M == null || !L.M.Vivo)
                     {
-                        if (L.M != null) { L.M.Dispose(); L.M = null; Log("jogo fechado"); }
+                        if (L.M != null) { L.M.Dispose(); L.M = null; Log("jogo fechado"); nomePersonagem = null; }
+                        Instancia.SoltarCliente();
                         if (DateTime.Now - ultimaBusca < TimeSpan.FromSeconds(2)) { Thread.Sleep(250); continue; }
                         ultimaBusca = DateTime.Now;
-                        var todos = Process.GetProcessesByName("client");
-                        var p = todos.FirstOrDefault(x => { try { return x.MainWindowTitle.IndexOf("BloodStone", StringComparison.OrdinalIgnoreCase) >= 0; } catch { return false; } }) ?? todos.FirstOrDefault();
-                        if (p == null) { Status("Aguardando o client.exe…", "aguardando o jogo", 0); continue; }
+                        // o primeiro cliente do Bloodstone que nenhum outro analyzer aberto já pegou
+                        var todos = Process.GetProcessesByName("client")
+                            .OrderByDescending(x => { try { return x.MainWindowTitle.IndexOf("BloodStone", StringComparison.OrdinalIgnoreCase) >= 0; } catch { return false; } })
+                            .ThenBy(x => { try { return x.StartTime; } catch { return DateTime.MaxValue; } }).ToList();
+                        var p = todos.FirstOrDefault(x => Instancia.PegarCliente(x.Id));
+                        if (p == null) { if (todos.Count == 0) Status("Aguardando o client.exe…", "aguardando o jogo", 0); else Status("Todos os clientes abertos já têm um analyzer. Abra outro cliente do Bloodstone.", "cliente já em uso", 0); continue; }
                         string erro; L.M = Memoria.Abrir(p, out erro);
                         if (L.M == null)
                         {
+                            Instancia.SoltarCliente();
                             bool semAdmin = erro == Memoria.SemPermissao;
                             Status(erro, semAdmin ? "precisa de administrador" : "sem acesso ao jogo", 2);
                             // o jogo está como administrador e o analyzer não: oferece reabrir (uma vez por sessão)
@@ -1252,6 +1278,7 @@ namespace BloodstoneHunt
 
                     // vida e mana: subida de vida = cura (inclui regeneração); queda de mana = mana gasta
                     var st = L.LerStatus();
+                    if (st != null) { var nm = L.LerNome(); if (nm != null && nm != nomePersonagem) { nomePersonagem = nm; Log("personagem: " + nm); } }
                     if (st == null) { if (!semStatusAvisado) { Log("vida/mana não lidas"); semStatusAvisado = true; } } else semStatusAvisado = false;
                     if (st != null)
                         lock (S.Trava)
@@ -1396,6 +1423,10 @@ namespace BloodstoneHunt
         void Atualizar()
         {
             V.S("Status", statusLeitor); V.S("StatusCurto", statusCurto);
+            // topo: o personagem deste analyzer (e o número do analyzer, quando há mais de um aberto)
+            var mJogo = L != null ? L.M : null; var conectado = mJogo != null; var nomeP = conectado ? nomePersonagem : null;
+            var pers = nomeP != null ? nomeP + (Instancia.Numero > 1 ? " · analyzer " + Instancia.Numero : "") : Instancia.Numero > 1 ? "Analyzer " + Instancia.Numero + (conectado ? " · cliente " + mJogo.Pid : "") : null;
+            V.S("Personagem", pers); V.S("PersonagemVis", pers == null ? Visibility.Collapsed : Visibility.Visible);
             V.S("CorStatus", nivelStatus == 1 ? Cor("#35D07F") : nivelStatus == 2 ? Cor("#FF5A64") : Cor("#F2B544"));
 
             TimeSpan dur; long xp, xpAtual, dano, rec, mana, maiorG, maxDps, cura, manaGasta; bool pausada; double ritmo = -1; StatusJogador atual; List<KeyValuePair<string, long>> sup;
