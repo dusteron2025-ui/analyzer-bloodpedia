@@ -442,7 +442,7 @@ namespace BloodstoneHunt
         readonly string pasta;
         public Preferencias()
         {
-            pasta = Instancia.Pasta(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BloodstoneHunt"));   // 2º analyzer em diante: subpasta própria
+            pasta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BloodstoneHunt");
             try
             {
                 Directory.CreateDirectory(pasta);
@@ -791,7 +791,6 @@ namespace BloodstoneHunt
 
         void Iniciar(Application app)
         {
-            Instancia.Pegar();   // 1º, 2º… analyzer aberto (cada um no seu cliente)
             Carregar();
             try { log = new StreamWriter(Path.Combine(P.PastaLog, "analyzer.log"), false, Encoding.UTF8) { AutoFlush = true }; } catch { }
             try { bruto = new StreamWriter(Path.Combine(P.PastaLog, "mensagens.log"), false, Encoding.UTF8) { AutoFlush = true }; } catch { }
@@ -1240,19 +1239,14 @@ namespace BloodstoneHunt
                     if (L.M == null || !L.M.Vivo)
                     {
                         if (L.M != null) { L.M.Dispose(); L.M = null; Log("jogo fechado"); nomePersonagem = null; }
-                        Instancia.SoltarCliente();
                         if (DateTime.Now - ultimaBusca < TimeSpan.FromSeconds(2)) { Thread.Sleep(250); continue; }
                         ultimaBusca = DateTime.Now;
-                        // o primeiro cliente do Bloodstone que nenhum outro analyzer aberto já pegou
-                        var todos = Process.GetProcessesByName("client")
-                            .OrderByDescending(x => { try { return x.MainWindowTitle.IndexOf("BloodStone", StringComparison.OrdinalIgnoreCase) >= 0; } catch { return false; } })
-                            .ThenBy(x => { try { return x.StartTime; } catch { return DateTime.MaxValue; } }).ToList();
-                        var p = todos.FirstOrDefault(x => Instancia.PegarCliente(x.Id));
-                        if (p == null) { if (todos.Count == 0) Status("Aguardando o client.exe…", "aguardando o jogo", 0); else Status("Todos os clientes abertos já têm um analyzer. Abra outro cliente do Bloodstone.", "cliente já em uso", 0); continue; }
+                        var todos = Process.GetProcessesByName("client");
+                        var p = todos.FirstOrDefault(x => { try { return x.MainWindowTitle.IndexOf("BloodStone", StringComparison.OrdinalIgnoreCase) >= 0; } catch { return false; } }) ?? todos.FirstOrDefault();
+                        if (p == null) { Status("Aguardando o client.exe…", "aguardando o jogo", 0); continue; }
                         string erro; L.M = Memoria.Abrir(p, out erro);
                         if (L.M == null)
                         {
-                            Instancia.SoltarCliente();
                             bool semAdmin = erro == Memoria.SemPermissao;
                             Status(erro, semAdmin ? "precisa de administrador" : "sem acesso ao jogo", 2);
                             // o jogo está como administrador e o analyzer não: oferece reabrir (uma vez por sessão)
@@ -1423,9 +1417,8 @@ namespace BloodstoneHunt
         void Atualizar()
         {
             V.S("Status", statusLeitor); V.S("StatusCurto", statusCurto);
-            // topo: o personagem deste analyzer (e o número do analyzer, quando há mais de um aberto)
-            var mJogo = L != null ? L.M : null; var conectado = mJogo != null; var nomeP = conectado ? nomePersonagem : null;
-            var pers = nomeP != null ? nomeP + (Instancia.Numero > 1 ? " · analyzer " + Instancia.Numero : "") : Instancia.Numero > 1 ? "Analyzer " + Instancia.Numero + (conectado ? " · cliente " + mJogo.Pid : "") : null;
+            // topo: o personagem a que este analyzer está conectado
+            var mJogo = L != null ? L.M : null; var pers = mJogo != null ? nomePersonagem : null;
             V.S("Personagem", pers); V.S("PersonagemVis", pers == null ? Visibility.Collapsed : Visibility.Visible);
             V.S("CorStatus", nivelStatus == 1 ? Cor("#35D07F") : nivelStatus == 2 ? Cor("#FF5A64") : Cor("#F2B544"));
 

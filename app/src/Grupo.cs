@@ -65,7 +65,7 @@ namespace BloodstoneHunt
 
         // ---------------- o que fica guardado no PC ----------------
         static string ArqAcesso { get { return Path.Combine(Pasta, "grupo-acesso.dat"); } }
-        static string ArqGrupo { get { return Path.Combine(Instancia.Pasta(Pasta), "grupo.dat"); } }   // cada analyzer aberto no seu grupo
+        static string ArqGrupo { get { return Path.Combine(Pasta, "grupo.dat"); } }
         public static string TokenAcesso { get { try { return File.Exists(ArqAcesso) ? File.ReadAllText(ArqAcesso).Trim() : null; } catch { return null; } } set { try { if (value == null) File.Delete(ArqAcesso); else File.WriteAllText(ArqAcesso, value); } catch { } } }
         /** grupo atual: código, membro, segredo, nome (para voltar sozinho ao reabrir o analyzer) */
         public static string[] Atual
@@ -73,7 +73,7 @@ namespace BloodstoneHunt
             get { try { var p = File.Exists(ArqGrupo) ? File.ReadAllText(ArqGrupo, Encoding.UTF8).Split('\n') : null; return p != null && p.Length >= 4 ? p.Select(x => x.Trim()).ToArray() : null; } catch { return null; } }
             set { try { if (value == null) File.Delete(ArqGrupo); else File.WriteAllText(ArqGrupo, string.Join("\n", value), Encoding.UTF8); } catch { } }
         }
-        public static string ArqNome { get { return Path.Combine(Instancia.Pasta(Pasta), "grupo-nome.txt"); } }
+        public static string ArqNome { get { return Path.Combine(Pasta, "grupo-nome.txt"); } }
     }
 
     partial class Programa

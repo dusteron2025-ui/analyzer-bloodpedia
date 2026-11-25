@@ -23,7 +23,7 @@ namespace BloodstoneHunt
     static class Info
     {
         public const string Nome = "Analyzer Bloodpedia";
-        public const string Versao = "1.0.10";
+        public const string Versao = "1.0.11";
         // repositório público onde ficam as versões (GitHub Releases)
         public const string Repositorio = "dusteron2025-ui/analyzer-bloodpedia";
     }
@@ -103,31 +103,6 @@ namespace BloodstoneHunt
             }
             catch { }
         }
-    }
-
-    // ---------------- vários analyzers no mesmo PC (um por cliente do Bloodstone) ----------------
-    // Cada analyzer aberto pega um número (1, 2, 3…) e "reserva" o client.exe a que se conecta, com objetos do Windows
-    // que somem sozinhos quando o analyzer fecha. Assim o 2º analyzer vai para o 2º cliente. O nº 1 usa a pasta de sempre
-    // (%LOCALAPPDATA%\BloodstoneHunt); os outros usam uma subpasta (analyzer-2, …) para preferências, logs e grupo.
-    static class Instancia
-    {
-        public static int Numero = 1;
-        static EventWaitHandle marca, cliente;
-        static EventWaitHandle Criar(string nome)
-        {
-            try { bool novo; var h = new EventWaitHandle(false, EventResetMode.ManualReset, @"Local\AnalyzerBloodpedia-" + nome, out novo); if (novo) return h; h.Dispose(); }
-            catch { }   // criado por outro analyzer (por exemplo, como administrador): está em uso
-            return null;
-        }
-        public static void Pegar() { for (int i = 1; i <= 9; i++) { var h = Criar("instancia-" + i); if (h != null) { marca = h; Numero = i; return; } } }
-        public static string Pasta(string base_)
-        {
-            if (Numero == 1) return base_;
-            var p = Path.Combine(base_, "analyzer-" + Numero); Directory.CreateDirectory(p); return p;
-        }
-        /** reserva o cliente para este analyzer; false se outro analyzer já está nele */
-        public static bool PegarCliente(int pid) { SoltarCliente(); cliente = Criar("cliente-" + pid); return cliente != null; }
-        public static void SoltarCliente() { if (cliente != null) { cliente.Dispose(); cliente = null; } }
     }
 
     // ---------------- aviso de nova versão ----------------
