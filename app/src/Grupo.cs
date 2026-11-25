@@ -5,7 +5,7 @@
 // - O loot do grupo é o do líder (todos veem as mesmas mensagens de Pilhagem), então nada é contado em dobro;
 //   supplies, dano e cura são de cada um.
 // - Vai para o servidor só o essencial: o nome que a pessoa digitou, loot, supplies, dano e cura (e, para o líder, um
-//   hash do PC feito só para o modo grupo, que limita a chave a 2 PCs). Ficam lá por 6 h desde a última atualização.
+//   hash do PC feito só para o modo grupo, que limita a chave a 1 PC). Ficam lá por 6 h desde a última atualização.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -433,20 +433,34 @@ namespace BloodstoneHunt
             var enc = new System.Windows.Media.Imaging.PngBitmapEncoder(); enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
             using (var f = File.Create(arq)) enc.Save(f);
         }
+        // a janela em 2x, sobre um fundo escuro com margem (print para divulgação)
+        static void Foto2x(Window w, string arq)
+        {
+            w.Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.ContextIdle); w.UpdateLayout();
+            var raiz = (FrameworkElement)VisualTreeHelper.GetChild(w, 0);
+            int lw = (int)w.ActualWidth * 2, lh = (int)w.ActualHeight * 2, m = 48;
+            var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(lw, lh, 192, 192, PixelFormats.Pbgra32); rtb.Render(raiz);
+            var dv = new DrawingVisual();
+            using (var dc = dv.RenderOpen()) { dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x0E, 0x0F, 0x12)), null, new Rect(0, 0, lw + 2 * m, lh + 2 * m)); dc.DrawImage(rtb, new Rect(m, m, lw, lh)); }
+            var fimb = new System.Windows.Media.Imaging.RenderTargetBitmap(lw + 2 * m, lh + 2 * m, 96, 96, PixelFormats.Pbgra32); fimb.Render(dv);
+            var enc = new System.Windows.Media.Imaging.PngBitmapEncoder(); enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(fimb));
+            using (var fs = File.Create(arq)) enc.Save(fs);
+        }
         public void TestarGrupo(string pasta)
         {
             Carregar(); P.PorCima = false;
             foreach (var d in Definicoes) Criar(d);
             janelas["hunt"].W.Left = -10000; janelas["hunt"].W.Show();
-            long agora = 1800000000000, criado = agora - 13 * 60000;
-            var json = "{\"codigo\":\"KX7P2M\",\"criado\":" + criado + ",\"agora\":" + agora + ",\"lider\":\"aaaaaaaa\",\"membros\":[" +
-                "{\"id\":\"aaaaaaaa\",\"nome\":\"Wizo Olfu\",\"lider\":true,\"atualizado\":" + agora + ",\"dados\":{\"loot\":61778,\"supplies\":33200,\"dano\":33800,\"cura\":0}}," +
-                "{\"id\":\"bbbbbbbb\",\"nome\":\"Shap Oddorowyna\",\"lider\":false,\"atualizado\":" + agora + ",\"dados\":{\"loot\":0,\"supplies\":28000,\"dano\":11304,\"cura\":2272}}," +
-                "{\"id\":\"cccccccc\",\"nome\":\"Valin Grato\",\"lider\":false,\"atualizado\":" + (agora - 9 * 60000) + ",\"dados\":{\"loot\":0,\"supplies\":38400,\"dano\":9674,\"cura\":0}}]}";
-            grupoAtual = new[] { "KX7P2M", "aaaaaaaa", "x", "Wizo Olfu" };
+            long agora = 1800000000000, criado = agora - 47 * 60000;
+            var json = "{\"codigo\":\"KX7P2M\",\"criado\":" + criado + ",\"agora\":" + agora + ",\"lider\":\"aaaaaaaa\",\"epoca\":0,\"membros\":[" +
+                "{\"id\":\"aaaaaaaa\",\"nome\":\"Eduzinho\",\"lider\":true,\"atualizado\":" + (agora - 1 * 60000) + ",\"dados\":{\"loot\":182400,\"supplies\":21300,\"dano\":52800,\"cura\":4100}}" + "," +
+                "{\"id\":\"bbbbbbbb\",\"nome\":\"Arqueira Lia\",\"lider\":false,\"atualizado\":" + (agora - 1 * 60000) + ",\"dados\":{\"loot\":0,\"supplies\":18700,\"dano\":41200,\"cura\":9850}}" + "," +
+                "{\"id\":\"cccccccc\",\"nome\":\"Xamã Torr\",\"lider\":false,\"atualizado\":" + (agora - 2 * 60000) + ",\"dados\":{\"loot\":0,\"supplies\":15900,\"dano\":36700,\"cura\":12300}}" + "]}";
+            grupoAtual = new[] { "KX7P2M", "aaaaaaaa", "x", "Eduzinho" };
             grupoEstado = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
             grupoUltimoEnvio = DateTime.Now.AddMinutes(-1);
             MostrarJanelaGrupo(); Foto(janelaGrupo.W, Path.Combine(pasta, "party.png"));
+            Foto2x(janelaGrupo.W, Path.Combine(pasta, "party-2x.png"));
             Foto(janelas["hunt"].W, Path.Combine(pasta, "hunt.png"));
             grupoAtual = null; AbrirGrupo();
             var dlg = Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x.Title == "Caçada em grupo");
