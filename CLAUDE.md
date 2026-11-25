@@ -22,6 +22,7 @@ npm run anunciar -- X.Y.Z "mudança 1" "mudança 2"
 - Posta em #📊・analyzer marcando o cargo 📊 Avisos do Analyzer (não @everyone) com o link de download.
 - `--teste` no fim posta em #🤖・bot-logs sem marcar ninguém, para conferir antes.
 - `--sem-marcar` no fim posta em #📊・analyzer sem marcar o cargo (versões pequenas, de manutenção).
+- Anúncio com imagem ou @everyone: escreva o texto num arquivo e use `npm run postar -- --texto arquivo.md --imagem print.png [--everyone | --cargo analyzer] [--canal analyzer] [--teste]`. Print da Hunt em grupo: `marca/print-hunt-em-grupo.png` (gerado por `teste-captura.exe --testar-grupo <pasta>`).
 - Não abra o Discord no navegador nem peça login: o bot já tem acesso. Não leia nem mostre o `.env` do bot (token).
 - Mostre o texto ao usuário e espere o OK antes do anúncio real.
 
