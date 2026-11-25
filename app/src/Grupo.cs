@@ -1,7 +1,7 @@
 // Analyzer Bloodpedia — caçada em grupo (Party Hunt), servidor separado da wiki: https://grupo.bloodpedia.com.br
 //
 // - Só líderes liberados pela equipe (chave de acesso) criam grupos; qualquer pessoa entra com o código de 6 letras.
-// - Até 6 pessoas. Cada analyzer envia os próprios números a cada 1 minuto (e em "Enviar agora" e ao fechar).
+// - Até 6 pessoas. Cada analyzer envia os próprios números a cada 2 minutos (e em "Enviar agora" e ao fechar).
 // - O loot do grupo é o do líder (todos veem as mesmas mensagens de Pilhagem), então nada é contado em dobro;
 //   supplies, dano e cura são de cada um.
 // - Vai para o servidor só o essencial: o nome que a pessoa digitou, loot, supplies, dano e cura (e, para o líder, um
@@ -78,9 +78,9 @@ namespace BloodstoneHunt
 
     partial class Programa
     {
-        const int IntervaloGrupo = 60;    // segundos entre os envios (cada envio também traz os números dos outros)
+        const int IntervaloGrupo = 120;   // segundos entre os envios (cada envio também traz os números dos outros)
         string[] grupoAtual;              // código, membro, segredo, nome
-        Dictionary<string, object> grupoEstado; DateTime grupoUltimoEnvio = DateTime.MinValue; string grupoErro;
+        Dictionary<string, object> grupoEstado; DateTime grupoUltimoEnvio = DateTime.MinValue, grupoUltimoManual = DateTime.MinValue; string grupoErro;
         DispatcherTimer grupoTimer; volatile bool grupoEnviando; Janela janelaGrupo; StackPanel grupoCorpo;
         // O grupo conta a partir de um "ponto de partida": ao entrar/criar, quando o líder zera (nova época) ou quando a
         // própria sessão é zerada. Enviado = número da caçada − base (a base pode ser negativa para manter o que já
@@ -176,7 +176,7 @@ namespace BloodstoneHunt
                 }
             }
             else if (GrupoServidor.Sim(r, "fora")) { SairDoGrupoLocal("Você não está mais no grupo: o líder te removeu, encerrou o grupo ou ele ficou 6 h parado."); return; }
-            else grupoErro = GrupoServidor.Txt(r, "erro") ?? "Não deu para atualizar agora. Tento de novo em 1 minuto.";
+            else grupoErro = GrupoServidor.Txt(r, "erro") ?? "Não deu para atualizar agora. Tento de novo em 2 minutos.";
             DesenharGrupo();
         }
         void SairDoGrupoLocal(string motivo)
@@ -323,7 +323,7 @@ namespace BloodstoneHunt
             copiar.Click += (s, e) => { try { Clipboard.SetText(grupoAtual[0]); copiar.Content = ""; } catch { } };
             cab.Children.Add(copiar); c.Children.Add(cab);
             var atual = grupoUltimoEnvio == DateTime.MinValue ? "enviando…" : "atualizado há " + Math.Max(0, (int)(DateTime.Now - grupoUltimoEnvio).TotalMinutes) + " min";
-            c.Children.Add(Linha(grupoErro ?? (atual + " · a cada 1 min"), grupoErro != null ? "#FF8A8A" : "#626772", 10.5));
+            c.Children.Add(Linha(grupoErro ?? (atual + " · a cada 2 min"), grupoErro != null ? "#FF8A8A" : "#626772", 10.5));
             if ((L == null || L.M == null) && !EmTutorial)
             {
                 // sem ler o jogo, os números desta pessoa vão zerados para o grupo
@@ -433,7 +433,15 @@ namespace BloodstoneHunt
             var lin = new UniformGrid2(); lin.Margin = new Thickness(0, 8, -3, -3);
             var enviar = new Button { Content = "Enviar agora", Style = (Style)Application.Current.Resources["BotaoAtalho"], Padding = new Thickness(1, 0, 1, 0) };
             var sair = new Button { Content = souLider ? "Encerrar" : "Sair", Style = (Style)Application.Current.Resources["BotaoAtalho"], Padding = new Thickness(1, 0, 1, 0), ToolTip = souLider ? "Encerrar o grupo para todos" : "Sair do grupo" };
-            enviar.Click += (s, e) => { enviar.IsEnabled = false; EnviarGrupo(false); };
+            // "Enviar agora": no máximo 1 vez a cada 15 minutos (os envios automáticos continuam a cada 2 min)
+            var falta = TimeSpan.FromMinutes(15) - (DateTime.Now - grupoUltimoManual);
+            if (falta > TimeSpan.Zero)
+            {
+                enviar.IsEnabled = false; enviar.Content = "Enviar em " + Math.Max(1, (int)Math.Ceiling(falta.TotalMinutes)) + " min";
+                ToolTipService.SetShowOnDisabled(enviar, true); enviar.ToolTip = "Dá para enviar na hora 1 vez a cada 15 minutos. Enquanto isso, o analyzer envia sozinho a cada 2 minutos.";
+            }
+            else enviar.ToolTip = "Enviar os seus números agora (1 vez a cada 15 minutos)";
+            enviar.Click += (s, e) => { enviar.IsEnabled = false; grupoUltimoManual = DateTime.Now; EnviarGrupo(false); };
             sair.Click += (s, e) =>
             {
                 if (MessageBox.Show(janelaGrupo.W, souLider ? "Encerrar o grupo para todos?" : "Sair do grupo?", Info.Nome, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
