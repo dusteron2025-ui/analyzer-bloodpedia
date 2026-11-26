@@ -815,7 +815,7 @@ namespace BloodstoneHunt
             foreach (var d in Definicoes) Criar(d);
             var hunt = janelas["hunt"];
             Ligar(hunt);
-            hunt.W.Closed += (s, e) => { rodando = false; try { EnviarGrupo(true); } catch { } SalvarPosicoes(); P.Salvar(); app.Shutdown(); };
+            hunt.W.Closed += (s, e) => { rodando = false; try { SairDoGrupoAoFechar(); } catch { } SalvarPosicoes(); P.Salvar(); app.Shutdown(); };
             hunt.W.Show();
             trava = new Trava(hunt.W, (Button)hunt.Corpo.FindName("BtnTravar"), () => janelas.Values.Select(x => x.W));
             trava.Mudou += () => { var b = (Button)hunt.Corpo.FindName("BtnTravar"); b.Content = trava.Ligada ? "" : ""; b.Opacity = trava.Ligada ? 1 : 0.45; };

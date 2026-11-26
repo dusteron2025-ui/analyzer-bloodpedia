@@ -118,15 +118,54 @@ namespace BloodstoneHunt
             t.Tick += (s, e) => { t.Stop(); EnviarGrupo(false); }; t.Start();
         }
 
-        // chamado ao abrir: se estava num grupo, volta a ele
+        // chamado ao abrir. Fechar o analyzer (ou a janela do grupo) sai do grupo; se ficou um grupo salvo (o analyzer
+        // fechou sem conseguir avisar), sai dele agora: para voltar, é preciso entrar de novo.
         void IniciarGrupo()
         {
-            grupoAtual = GrupoServidor.Atual;
-            grupoEpoca = -1; grupoBase = null;   // o primeiro envio só pergunta a época; depois continua de onde parou
+            grupoAtual = null; grupoEpoca = -1; grupoBase = null;
+            var antigo = GrupoServidor.Atual;
+            if (antigo != null)
+            {
+                GrupoServidor.Atual = null; Log("grupo: saiu do grupo anterior (" + antigo[0] + ")");
+                new Thread(() => { int st; GrupoServidor.Post("grupo", new Dictionary<string, object> { { "acao", "sair" }, { "codigo", antigo[0] }, { "membro", antigo[1] }, { "segredo", antigo[2] } }, out st); }) { IsBackground = true }.Start();
+            }
             grupoTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(IntervaloGrupo) };
             grupoTimer.Tick += (s, e) => EnviarGrupo(false);
-            var t2 = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) }; t2.Tick += (s, e) => { if (EmGrupo) DesenharGrupo(); }; t2.Start();   // "há X min"
-            if (EmGrupo) { grupoTimer.Start(); EnviarGrupo(false); }
+            var t2 = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) }; t2.Tick += (s, e) => { if (EmGrupo) DesenharGrupo(); }; t2.Start();   // "há X min" e o tempo do dia
+        }
+        bool HuntRodando { get { return grupoEstado != null && GrupoServidor.Sim(grupoEstado, "ativo"); } }
+        bool SouLiderGrupo { get { return EmGrupo && grupoEstado != null && GrupoServidor.Txt(grupoEstado, "lider") == grupoAtual[1]; } }
+
+        /** ao fechar o analyzer: sai do grupo (o líder encerra para todos) */
+        void SairDoGrupoAoFechar()
+        {
+            if (!EmGrupo) return;
+            var g = grupoAtual; grupoAtual = null; GrupoServidor.Atual = null;
+            int st; GrupoServidor.Post("grupo", new Dictionary<string, object> { { "acao", "sair" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] } }, out st, 3000);
+        }
+        /** botão Sair/Encerrar ou fechar a janela do grupo: pergunta e sai */
+        void SairDoGrupo()
+        {
+            if (!EmGrupo) return;
+            var texto = SouLiderGrupo ? "Encerrar o grupo para todos?\n\nA hunt em grupo para e o tempo do dia deixa de contar." : "Sair do grupo?\n\nO analyzer para de enviar os seus números.";
+            if (MessageBox.Show(janelaGrupo.W, Acess.T(texto), Info.Nome, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            var g = grupoAtual; SairDoGrupoLocal(null);
+            new Thread(() => { int st; GrupoServidor.Post("grupo", new Dictionary<string, object> { { "acao", "sair" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] } }, out st); }) { IsBackground = true }.Start();
+        }
+        /** líder: iniciar ou parar a hunt (o tempo do dia só conta com a hunt rodando) */
+        void IniciarOuPararHunt(bool iniciar)
+        {
+            if (!EmGrupo) return;
+            var g = grupoAtual;
+            new Thread(() =>
+            {
+                int st; var r = GrupoServidor.Post("grupo", new Dictionary<string, object> { { "acao", iniciar ? "iniciar" : "parar" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] } }, out st);
+                janelas["hunt"].W.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (st == 403 && GrupoServidor.Obj(r, "estado") != null) { grupoEstado = GrupoServidor.Obj(r, "estado"); grupoErro = GrupoServidor.Txt(r, "erro"); DesenharGrupo(); return; }
+                    Log("grupo: hunt " + (iniciar ? "iniciada" : "parada")); RespostaGrupo(st, r);
+                }));
+            }) { IsBackground = true }.Start();
         }
 
         /** só o que o painel do grupo usa: loot (o servidor só aproveita o do líder), supplies em gp, dano e cura */
@@ -144,7 +183,8 @@ namespace BloodstoneHunt
         {
             if (!EmGrupo || grupoEnviando) return;
             grupoEnviando = true;
-            var g = grupoAtual; var corpo = new Dictionary<string, object> { { "acao", "enviar" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] }, { "epoca", grupoEpoca }, { "dados", DadosGrupo() } };
+            var g = grupoAtual; var corpo = new Dictionary<string, object> { { "acao", HuntRodando ? "enviar" : "ver" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] }, { "epoca", grupoEpoca } };
+            if (HuntRodando) corpo["dados"] = DadosGrupo();   // com a hunt parada, só pergunta como está o grupo
             Action rodar = () =>
             {
                 int st; var r = GrupoServidor.Post("grupo", corpo, out st, final ? 3000 : 10000);
@@ -294,7 +334,7 @@ namespace BloodstoneHunt
                     var corpoP = (FrameworkElement)w.Template.FindName("PART_Corpo", w);
                     Ajustavel(w, "grupo", 236);
                     ((Button)w.Template.FindName("PART_Recolher", w)).Click += (s2, e2) => corpoP.Visibility = corpoP.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-                    ((Button)w.Template.FindName("PART_Fechar", w)).Click += (s2, e2) => { w.Hide(); P.Abertas.Remove("grupo"); P.Salvar(); };
+                    ((Button)w.Template.FindName("PART_Fechar", w)).Click += (s2, e2) => SairDoGrupo();   // fechar a janela sai do grupo (líder: encerra)
                 };
                 janelas["grupo"] = janelaGrupo;
             }
@@ -327,6 +367,7 @@ namespace BloodstoneHunt
             cab.Children.Add(copiar); c.Children.Add(cab);
             var atual = grupoUltimoEnvio == DateTime.MinValue ? Acess.T("enviando…") : string.Format(Acess.T("atualizado há {0} min"), Math.Max(0, (int)(DateTime.Now - grupoUltimoEnvio).TotalMinutes));
             c.Children.Add(Linha(grupoErro ?? (atual + Acess.T(" · a cada 2 min")), grupoErro != null ? "#FF8A8A" : "#626772", 10.5));
+            if (grupoEstado != null) BlocoHunt(c);
             if ((L == null || L.M == null) && !EmTutorial)
             {
                 // sem ler o jogo, os números desta pessoa vão zerados para o grupo
@@ -431,6 +472,40 @@ namespace BloodstoneHunt
             }) { IsBackground = true }.Start();
         }
 
+        /** hunt rodando/parada, tempo de hoje (limite diário do líder) e o botão Iniciar/Parar do líder */
+        void BlocoHunt(StackPanel c)
+        {
+            var g = grupoEstado; bool rodando = HuntRodando, lider = SouLiderGrupo;
+            double usado = GrupoServidor.Num(g, "usadoSeg"), limite = Math.Max(60, GrupoServidor.Num(g, "limiteSeg"));
+            if (rodando) usado += Math.Max(0, (DateTime.Now - grupoUltimoEnvio).TotalSeconds);   // continua contando entre as atualizações
+            usado = Math.Min(usado, limite);
+            bool acabou = usado >= limite - 1;
+            Func<double, string> hm = x => string.Format("{0}h{1:00}", (int)(x / 3600), (int)(x % 3600 / 60));
+            var caixa = new Border { CornerRadius = new CornerRadius(7), Background = Cor(rodando ? "#16261D" : "#1E2128"), BorderBrush = Cor(rodando ? "#2F6B47" : "#2A2E35"), BorderThickness = new Thickness(1), Padding = new Thickness(7, 5, 7, 6), Margin = new Thickness(0, 6, 0, 0) };
+            var st = new StackPanel(); caixa.Child = st;
+            var topo = new Grid();
+            var situacao = new TextBlock { FontSize = 11.5, FontWeight = FontWeights.SemiBold };
+            situacao.Inlines.Add(new System.Windows.Documents.Run(rodando ? "\u25CF " : "\u25A0 ") { Foreground = Cor(rodando ? "#35D07F" : "#7D828C") });
+            situacao.Inlines.Add(new System.Windows.Documents.Run(Acess.T(rodando ? "Hunt rodando" : "Hunt parada")) { Foreground = Cor("#E9EBEE") });
+            topo.Children.Add(situacao);
+            var hoje = Linha(string.Format(Acess.T("Hoje: {0} de {1}"), hm(usado), hm(limite)), acabou ? "#FF8A8A" : "#9AA0AA", 10.5);
+            hoje.HorizontalAlignment = HorizontalAlignment.Right; hoje.VerticalAlignment = VerticalAlignment.Center; hoje.ToolTip = Acess.T("Tempo de hunt em grupo usado hoje, do limite diário do líder");
+            topo.Children.Add(hoje); st.Children.Add(topo);
+            st.Children.Add(new ProgressBar { Style = (Style)Application.Current.Resources["BarraFina"], Maximum = limite, Value = usado, Foreground = Cor(acabou ? "#FF5A64" : rodando ? "#35D07F" : "#5B9BFF"), Margin = new Thickness(0, 4, 0, 0) });
+            if (!rodando && GrupoServidor.Txt(g, "parou") == "limite") st.Children.Add(Paragrafo("O tempo de hunt em grupo de hoje acabou. Volta amanhã!", "#FF8A8A"));
+            if (lider)
+            {
+                var b = new Button { Style = (Style)Application.Current.Resources["BotaoAtalho"], Height = 28, Margin = new Thickness(0, 6, 0, 0), IsEnabled = rodando || !acabou };
+                b.Content = Acess.T(rodando ? "\u25A0  Parar hunt" : "\u25B6  Iniciar hunt");
+                if (!rodando) { b.Background = Cor("#1F3A2A"); b.BorderBrush = Cor("#35D07F"); b.Foreground = Brushes.White; }
+                b.ToolTip = Acess.T(rodando ? "Pausa a hunt: o grupo para de enviar números e o tempo do dia para de contar" : "Começa a hunt: zera a contagem do grupo e todos passam a enviar os números a cada 2 minutos");
+                b.Click += (s, e) => { b.IsEnabled = false; IniciarOuPararHunt(!rodando); };
+                st.Children.Add(b);
+            }
+            else if (!rodando) { var p = Paragrafo("Esperando o líder iniciar a hunt…", "#8B909A"); p.Margin = new Thickness(0, 4, 0, 0); st.Children.Add(p); }
+            c.Children.Add(caixa);
+        }
+
         void Rodape(StackPanel c, bool souLider)
         {
             var lin = new UniformGrid2(); lin.Margin = new Thickness(0, 8, -3, -3);
@@ -445,14 +520,9 @@ namespace BloodstoneHunt
             }
             else enviar.ToolTip = "Enviar os seus números agora (1 vez a cada 15 minutos)";
             enviar.Click += (s, e) => { enviar.IsEnabled = false; grupoUltimoManual = DateTime.Now; EnviarGrupo(false); };
-            sair.Click += (s, e) =>
-            {
-                if (MessageBox.Show(janelaGrupo.W, souLider ? "Encerrar o grupo para todos?" : "Sair do grupo?", Info.Nome, MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
-                var g = grupoAtual; SairDoGrupoLocal(null);
-                new Thread(() => { int st; GrupoServidor.Post("grupo", new Dictionary<string, object> { { "acao", "sair" }, { "codigo", g[0] }, { "membro", g[1] }, { "segredo", g[2] } }, out st); }) { IsBackground = true }.Start();
-            };
-            lin.Children.Add(enviar);
-            if (souLider)
+            sair.Click += (s, e) => SairDoGrupo();
+            if (HuntRodando) lin.Children.Add(enviar);   // com a hunt parada não há o que enviar
+            if (souLider && HuntRodando)
             {
                 // zerar a sessão do grupo: só o líder (o servidor também confere)
                 var zerar = new Button { Content = "Zerar", Style = (Style)Application.Current.Resources["BotaoAtalho"], Padding = new Thickness(1, 0, 1, 0), ToolTip = "Zerar a sessão do grupo para todos (só o líder)" };
@@ -505,7 +575,7 @@ namespace BloodstoneHunt
             foreach (var d in Definicoes) Criar(d);
             janelas["hunt"].W.Left = -10000; janelas["hunt"].W.Show();
             long agora = 1800000000000, criado = agora - 47 * 60000;
-            var json = "{\"codigo\":\"KX7P2M\",\"criado\":" + criado + ",\"agora\":" + agora + ",\"lider\":\"aaaaaaaa\",\"epoca\":0,\"membros\":[" +
+            var json = "{\"codigo\":\"KX7P2M\",\"criado\":" + criado + ",\"agora\":" + agora + ",\"lider\":\"aaaaaaaa\",\"epoca\":0,\"ativo\":" + (Environment.GetEnvironmentVariable("ANALYZER_PARADO") == null ? "true" : "false") + ",\"usadoSeg\":2820,\"limiteSeg\":7200,\"membros\":[" +
                 "{\"id\":\"aaaaaaaa\",\"nome\":\"Eduzinho\",\"lider\":true,\"atualizado\":" + (agora - 1 * 60000) + ",\"dados\":{\"loot\":182400,\"supplies\":21300,\"dano\":52800,\"cura\":4100}}" + "," +
                 "{\"id\":\"bbbbbbbb\",\"nome\":\"Arqueira Lia\",\"lider\":false,\"atualizado\":" + (agora - 1 * 60000) + ",\"dados\":{\"loot\":0,\"supplies\":18700,\"dano\":41200,\"cura\":9850}}" + "," +
                 "{\"id\":\"cccccccc\",\"nome\":\"Xamã Torr\",\"lider\":false,\"atualizado\":" + (agora - 2 * 60000) + ",\"dados\":{\"loot\":0,\"supplies\":15900,\"dano\":36700,\"cura\":12300}}" + "]}";
