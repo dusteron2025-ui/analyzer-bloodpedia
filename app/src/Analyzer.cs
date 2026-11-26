@@ -903,8 +903,6 @@ namespace BloodstoneHunt
             Action<double, double> aplicar = (l, a) =>
             {
                 w.Width = Math.Max(largura * Acess.FatorTexto, Math.Min(MaxLargura, l));   // mínimo: a largura original (maior com texto grande), para não cortar texto
-                // janela mais larga: a fonte cresce um pouco junto (metade do aumento da largura, até +35%)
-                Acess.DefinirFatorJanela(w, Math.Round(Math.Max(1, Math.Min(1.35, 1 + (w.Width / (largura * Acess.FatorTexto) - 1) * 0.5)) * 20) / 20);
                 if (a <= 0) { w.SizeToContent = SizeToContent.Height; altura = 0; }
                 else { altura = Math.Max(MinAltura, Math.Min(MaxAltura, a)); w.SizeToContent = SizeToContent.Manual; w.Height = altura; }
             };
@@ -914,6 +912,11 @@ namespace BloodstoneHunt
                 P.Salvar();
             };
             aplicar(tam != null ? tam[0] : largura, altura);
+            larguraBase[chave] = largura;
+            // o conteúdo ocupa pelo menos a altura visível (rodapés ficam embaixo) e a fonte se ajusta ao novo tamanho
+            var rolagem = w.Template.FindName("PART_Rolagem", w) as ScrollViewer;
+            if (corpo != null && rolagem != null) corpo.SetBinding(FrameworkElement.MinHeightProperty, new System.Windows.Data.Binding("ViewportHeight") { Source = rolagem });
+            w.SizeChanged += (s3, e3) => w.Dispatcher.BeginInvoke(new Action(AjustarJanelas), System.Windows.Threading.DispatcherPriority.Background);
             reajustes.Add(() => aplicar(w.Width, altura));   // ao mudar o tamanho do texto
             canto.Visibility = direita.Visibility = baixo.Visibility = Visibility.Visible;
             direita.DragDelta += (s, e) => aplicar(w.Width + e.HorizontalChange, altura);
@@ -1528,6 +1531,27 @@ namespace BloodstoneHunt
         // ---------------- janela Hunt que se reorganiza com o tamanho ----------------
         // Com a janela alta (altura escolhida pela pessoa): os atalhos ficam um embaixo do outro, com o nome completo, e a
         // lista de monstros mostra mais linhas. O rodapé fica sempre embaixo. Volta ao normal quando o espaço acaba.
+        readonly Dictionary<string, double> larguraBase = new Dictionary<string, double>();
+        /** fonte (e ícones) de cada janela de acordo com o tamanho: cresce com a largura e, se a altura foi escolhida, até
+         *  encher a altura (no máximo +35%). Na Hunt cresce só com a largura (a altura vai para os atalhos e a lista). */
+        void AjustarJanelas()
+        {
+            foreach (var j in janelas.Values.ToList())
+            {
+                var w = j.W; double baseW;
+                if (!w.IsVisible || w.Template == null || !larguraBase.TryGetValue(j.Chave, out baseW)) continue;
+                var sv = w.Template.FindName("PART_Rolagem", w) as ScrollViewer; if (sv == null) continue;
+                double fw = w.Width / (baseW * Acess.FatorTexto), atual = Acess.FatorJanela(w), alvo;
+                alvo = j.Chave == "hunt" ? 1 + (fw - 1) * 0.5 : fw;
+                // com altura escolhida: não passa do que cabe na altura (sem rolagem)
+                var c = j.Corpo as FrameworkElement;
+                if (w.SizeToContent == SizeToContent.Manual && c != null && c.DesiredSize.Height > 0 && sv.ViewportHeight > 0)
+                    alvo = Math.Min(alvo, sv.ViewportHeight / (c.DesiredSize.Height / atual) * 0.96);
+                if (w.SizeToContent == SizeToContent.Manual && sv.ScrollableHeight > 0.5 && atual > 1) alvo = Math.Min(alvo, atual - 0.05);   // ainda rolando: um passo menor
+                alvo = Math.Round(Math.Max(1, Math.Min(1.35, alvo)) * 20) / 20;
+                if (Math.Abs(alvo - atual) >= 0.05) Acess.DefinirFatorJanela(w, alvo);
+            }
+        }
         int maxKillsHunt = 6; bool atalhosEmpilhados, huntResponsiva;
         static readonly string[] AtalhosCurtos = { "Loot", "XP", "Kills", "Supp.", "Input" }, AtalhosLongos = { "Loot Analyzer", "XP Analyzer", "Kills Analyzer", "Supplies", "Dano Recebido" };
         void AjustarHunt()
@@ -1571,7 +1595,7 @@ namespace BloodstoneHunt
 
         void Atualizar()
         {
-            AjustarHunt();
+            AjustarJanelas(); AjustarHunt();
             V.S("Status", statusLeitor); V.S("StatusCurto", statusCurto);
             // topo: o personagem a que este analyzer está conectado
             var mJogo = L != null ? L.M : null; var pers = mJogo != null ? nomePersonagem : null;
@@ -1758,7 +1782,7 @@ namespace BloodstoneHunt
                 w.Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.ContextIdle);
                 w.UpdateLayout();
 #if TESTE
-                if (d[0] == "hunt") for (int k = 0; k < 4; k++) { AjustarHunt(); Atualizar(); w.Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.ContextIdle); w.UpdateLayout(); }   // alguns ciclos da janela que se reorganiza
+                for (int k = 0; k < 10; k++) { Atualizar(); w.Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.ContextIdle); w.UpdateLayout(); }   // alguns ciclos da janela que se reorganiza
 #endif
                 var raiz = (FrameworkElement)VisualTreeHelper.GetChild(w, 0);
                 var rtb = new RenderTargetBitmap((int)w.ActualWidth, (int)w.ActualHeight, 96, 96, PixelFormats.Pbgra32);

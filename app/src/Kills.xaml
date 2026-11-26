@@ -15,8 +15,8 @@
     <ItemsControl.ItemTemplate>
       <DataTemplate>
         <Grid Margin="0,2,0,3">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-          <Border Width="24" Height="24" CornerRadius="6" Background="#22252C" HorizontalAlignment="Left">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Border Width="24" Height="24" CornerRadius="6" Background="#22252C" HorizontalAlignment="Left" Margin="0,0,4,0">
             <Image Source="{Binding Imagem}" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality"/>
           </Border>
           <StackPanel Grid.Column="1" VerticalAlignment="Center">

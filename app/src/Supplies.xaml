@@ -1,39 +1,44 @@
-<StackPanel xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-  <Grid>
-    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-    <TextBlock Style="{StaticResource Rotulo}" Text="Gasto:"/>
-    <TextBlock Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding Supplies}" Foreground="{StaticResource Vermelho}"/>
-    <TextBlock Grid.Row="1" Style="{StaticResource Rotulo}" Text="Por hora:"/>
-    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding SuppliesHora}"/>
-    <TextBlock Grid.Row="2" Style="{StaticResource Rotulo}" Text="Itens usados:"/>
-    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding SuppliesQtd}"/>
-    <TextBlock Grid.Row="3" Style="{StaticResource Rotulo}" Text="Mana gasta:"/>
-    <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding ManaGasta}" Foreground="{StaticResource Azul}"/>
-    <TextBlock Grid.Row="4" Style="{StaticResource Rotulo}" Text="Mana gasta/h:"/>
-    <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding ManaGastaHora}"/>
-  </Grid>
-  <Border Style="{StaticResource Separador}" Margin="0,5,0,4"/>
-  <TextBlock Text="nenhum supply usado ainda" Foreground="#626772" Visibility="{Binding SemSupplies}"/>
-  <ItemsControl x:Name="ListaSupplies" ItemsSource="{Binding SuppliesLista}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ItemsControl.ItemTemplate>
-      <DataTemplate>
-        <Border Background="Transparent" Cursor="Hand" Tag="{Binding Nome}" ToolTip="Clique para definir o custo">
-        <Grid Margin="0,2,0,2">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-          <Border Width="24" Height="24" CornerRadius="6" Background="#22252C" HorizontalAlignment="Left">
-            <Image Source="{Binding Imagem}" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality"/>
+<!-- rodapé (dicas) preso embaixo quando a janela fica alta -->
+<DockPanel xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+  <StackPanel DockPanel.Dock="Bottom">
+    <TextBlock Text="{Binding SupplyStatus}" Foreground="#555A64" FontSize="9.5" Margin="0,5,0,0" TextWrapping="Wrap"/>
+    <TextBlock Text="Clique num supply para definir o custo. Conta pelo total que o jogo mostra na barra (não precisa de bolsa aberta)." Foreground="#555A64" FontSize="9.5" TextWrapping="Wrap"/>
+  </StackPanel>
+  <StackPanel VerticalAlignment="Top">
+    <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+      <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+      <TextBlock Style="{StaticResource Rotulo}" Text="Gasto:"/>
+      <TextBlock Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding Supplies}" Foreground="{StaticResource Vermelho}"/>
+      <TextBlock Grid.Row="1" Style="{StaticResource Rotulo}" Text="Por hora:"/>
+      <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding SuppliesHora}"/>
+      <TextBlock Grid.Row="2" Style="{StaticResource Rotulo}" Text="Itens usados:"/>
+      <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding SuppliesQtd}"/>
+      <TextBlock Grid.Row="3" Style="{StaticResource Rotulo}" Text="Mana gasta:"/>
+      <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding ManaGasta}" Foreground="{StaticResource Azul}"/>
+      <TextBlock Grid.Row="4" Style="{StaticResource Rotulo}" Text="Mana gasta/h:"/>
+      <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Valor}" Text="{Binding ManaGastaHora}"/>
+    </Grid>
+    <Border Style="{StaticResource Separador}" Margin="0,5,0,4"/>
+    <TextBlock Text="nenhum supply usado ainda" Foreground="#626772" Visibility="{Binding SemSupplies}"/>
+    <ItemsControl x:Name="ListaSupplies" ItemsSource="{Binding SuppliesLista}" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <Border Background="Transparent" Cursor="Hand" Tag="{Binding Nome}" ToolTip="Clique para definir o custo">
+          <Grid Margin="0,2,0,2">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Border Width="24" Height="24" CornerRadius="6" Background="#22252C" HorizontalAlignment="Left" Margin="0,0,4,0">
+              <Image Source="{Binding Imagem}" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Border>
+            <!-- o valor fica à direita e o nome usa o resto da largura (janela mais larga = nome inteiro) -->
+            <DockPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock DockPanel.Dock="Right" Margin="6,0,0,0"><Run Text="{Binding Valor, Mode=OneWay}" Foreground="#E9EBEE" FontWeight="SemiBold"/><Run Text="{Binding Extra, Mode=OneWay}" Foreground="#7D828C"/></TextBlock>
+              <TextBlock Text="{Binding Nome}" Foreground="#C9CDD4" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+          </Grid>
           </Border>
-          <!-- o valor fica à direita e o nome usa o resto da largura (janela mais larga = nome inteiro) -->
-          <DockPanel Grid.Column="1" VerticalAlignment="Center">
-            <TextBlock DockPanel.Dock="Right" Margin="6,0,0,0"><Run Text="{Binding Valor, Mode=OneWay}" Foreground="#E9EBEE" FontWeight="SemiBold"/><Run Text="{Binding Extra, Mode=OneWay}" Foreground="#7D828C"/></TextBlock>
-            <TextBlock Text="{Binding Nome}" Foreground="#C9CDD4" TextTrimming="CharacterEllipsis"/>
-          </DockPanel>
-        </Grid>
-        </Border>
-      </DataTemplate>
-    </ItemsControl.ItemTemplate>
-  </ItemsControl>
-  <TextBlock Text="{Binding SupplyStatus}" Foreground="#555A64" FontSize="9.5" Margin="0,5,0,0" TextWrapping="Wrap"/>
-  <TextBlock Text="Clique num supply para definir o custo. Conta pelo total que o jogo mostra na barra (não precisa de bolsa aberta)." Foreground="#555A64" FontSize="9.5" TextWrapping="Wrap"/>
-</StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</DockPanel>

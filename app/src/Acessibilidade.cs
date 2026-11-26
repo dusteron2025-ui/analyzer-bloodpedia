@@ -30,6 +30,7 @@ namespace BloodstoneHunt
 
         // fonte de cada janela: cresce um pouco quando a pessoa deixa a janela mais larga (1 = normal)
         public static readonly DependencyProperty FatorJanelaProperty = DependencyProperty.RegisterAttached("FatorJanela", typeof(double), typeof(Acess), new PropertyMetadata(1.0));
+        public static double FatorJanela(Window w) { return (double)w.GetValue(FatorJanelaProperty); }
         public static void DefinirFatorJanela(Window w, double f)
         {
             if (Math.Abs((double)w.GetValue(FatorJanelaProperty) - f) < 0.001) return;
@@ -91,7 +92,7 @@ namespace BloodstoneHunt
         }
 
         // ---------------- aplicar ----------------
-        class Orig { public string Texto, TextoAplicado; public double Fonte, FonteAplicada; public Brush Cor, CorAplicada, Fundo, FundoAplicado, Borda, BordaAplicada; public object Conteudo, ConteudoAplicado, Dica, DicaAplicada; public double Altura, AlturaAplicada; }
+        class Orig { public string Texto, TextoAplicado; public double Fonte, FonteAplicada; public Brush Cor, CorAplicada, Fundo, FundoAplicado, Borda, BordaAplicada; public object Conteudo, ConteudoAplicado, Dica, DicaAplicada; public double Altura, AlturaAplicada, Largura, LarguraAplicada; }
         static readonly ConditionalWeakTable<object, Orig> origs = new ConditionalWeakTable<object, Orig>();
 
         public static void Ligar()
@@ -159,6 +160,14 @@ namespace BloodstoneHunt
                     o.AlturaAplicada = Math.Round(o.Altura * fatorAtual); if (Math.Abs(bt.Height - o.AlturaAplicada) > 0.01) bt.Height = o.AlturaAplicada;
                 }
                 return;
+            }
+            // ícones (imagens e quadrinhos de tamanho fixo) crescem junto com o texto
+            if ((d is Image || d is Border) && fe != null && !double.IsNaN(fe.Width) && !double.IsNaN(fe.Height) && fe.Width <= 64 && fe.Height <= 64 && !(fe.TemplatedParent is System.Windows.Controls.Primitives.Thumb))
+            {
+                if (o.Largura == 0 || Math.Abs(fe.Width - o.LarguraAplicada) > 0.01 || Math.Abs(fe.Height - o.AlturaAplicada) > 0.01) { o.Largura = fe.Width; o.Altura = fe.Height; }
+                o.LarguraAplicada = Math.Round(o.Largura * fatorAtual, 1); o.AlturaAplicada = Math.Round(o.Altura * fatorAtual, 1);
+                if (Math.Abs(fe.Width - o.LarguraAplicada) > 0.01) fe.Width = o.LarguraAplicada;
+                if (Math.Abs(fe.Height - o.AlturaAplicada) > 0.01) fe.Height = o.AlturaAplicada;
             }
             var bd = d as Border;
             if (bd != null) Pintar(o, bd, Border.BackgroundProperty, Border.BorderBrushProperty, bd.Name == "PART_Fundo" || bd.Name == "PART_Titulo" ? Fundo : 1);
