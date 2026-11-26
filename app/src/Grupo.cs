@@ -282,6 +282,7 @@ namespace BloodstoneHunt
                 grupoCorpo = new StackPanel();
                 var w = new Window { Title = "Party Hunt", Width = 236, Content = grupoCorpo, Tag = Cor("#C25CE0"), Uid = "", Topmost = P.PorCima };
                 w.Style = (Style)Application.Current.Resources["JanelaAnalyzer"];
+                double escG; if (P.Escalas.TryGetValue("grupo", out escG)) w.Width = 236 * Math.Max(1.0, Math.Min(2.2, escG));   // tamanho salvo
                 double[] pos; w.WindowStartupLocation = WindowStartupLocation.Manual;
                 if (P.Posicoes.TryGetValue("grupo", out pos)) { w.Left = pos[0]; w.Top = pos[1]; } else { var h = janelas["hunt"].W; w.Left = h.Left - 244; w.Top = h.Top; }
                 janelaGrupo = new Janela { Chave = "grupo", W = w, Corpo = grupoCorpo };
@@ -290,6 +291,7 @@ namespace BloodstoneHunt
                     w.ApplyTemplate();
                     ((FrameworkElement)w.Template.FindName("PART_Titulo", w)).MouseLeftButtonDown += (s2, e2) => { if (e2.ButtonState == MouseButtonState.Pressed) { w.DragMove(); SalvarPosicoes(); } };
                     var corpoP = (FrameworkElement)w.Template.FindName("PART_Corpo", w);
+                    Ajustavel(w, "grupo", 236);
                     ((Button)w.Template.FindName("PART_Recolher", w)).Click += (s2, e2) => corpoP.Visibility = corpoP.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
                     ((Button)w.Template.FindName("PART_Fechar", w)).Click += (s2, e2) => { w.Hide(); P.Abertas.Remove("grupo"); P.Salvar(); };
                 };

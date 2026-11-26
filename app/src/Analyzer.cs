@@ -438,6 +438,7 @@ namespace BloodstoneHunt
         public HashSet<string> Escondidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         public bool PorCima = true, ModoObs, AvisoUso, AvisoAdmin;
         public Dictionary<string, double[]> Posicoes = new Dictionary<string, double[]>();
+        public Dictionary<string, double> Escalas = new Dictionary<string, double>();   // tamanho de cada janela (1 = original)
         public HashSet<string> Abertas = new HashSet<string>();
         readonly string pasta;
         public Preferencias()
@@ -460,6 +461,7 @@ namespace BloodstoneHunt
                         else if (p[0] == "avisouso") AvisoUso = p[1].Trim() == "1";
                         else if (p[0] == "avisoadmin") AvisoAdmin = p[1].Trim() == "1";
                         else if (p[0] == "abertas") foreach (var x in p[1].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)) Abertas.Add(x.Trim());
+                        else if (p[0].StartsWith("esc.")) { double e; if (double.TryParse(p[1], NumberStyles.Float, CultureInfo.InvariantCulture, out e) && e >= 1.0 && e <= 2.2) Escalas[p[0].Substring(4)] = e; }
                         else if (p[0].StartsWith("pos."))
                         {
                             var xy = p[1].Split(";".ToCharArray()); double x0, y0;
@@ -476,6 +478,7 @@ namespace BloodstoneHunt
                 File.WriteAllLines(Path.Combine(pasta, "precos.tsv"), Precos.Select(k => k.Key + "\t" + k.Value), Encoding.UTF8);
                 File.WriteAllLines(Path.Combine(pasta, "escondidos.txt"), Escondidos, Encoding.UTF8);
                 var o = new List<string> { "porcima=" + (PorCima ? 1 : 0), "obs=" + (ModoObs ? 1 : 0), "avisouso=" + (AvisoUso ? 1 : 0), "avisoadmin=" + (AvisoAdmin ? 1 : 0), "abertas=" + string.Join(",", Abertas) };
+                foreach (var k in Escalas) o.Add("esc." + k.Key + "=" + k.Value.ToString("0.###", CultureInfo.InvariantCulture));
                 foreach (var k in Posicoes) o.Add("pos." + k.Key + "=" + k.Value[0].ToString(CultureInfo.InvariantCulture) + ";" + k.Value[1].ToString(CultureInfo.InvariantCulture));
                 File.WriteAllLines(Path.Combine(pasta, "opcoes.txt"), o);
             }
@@ -825,7 +828,9 @@ namespace BloodstoneHunt
         {
             FrameworkElement corpo;
             using (var r = typeof(Programa).Assembly.GetManifestResourceStream(Recurso(d[0]))) corpo = (FrameworkElement)XamlReader.Load(r);
+            double esc0; if (!P.Escalas.TryGetValue(d[0], out esc0)) esc0 = 1;   // tamanho salvo da janela
             var w = new Window { Title = d[1], Width = double.Parse(d[4], CultureInfo.InvariantCulture), Content = corpo, DataContext = V, Tag = Cor(d[2]), Uid = d[3] };
+            w.Width *= Math.Max(1.0, Math.Min(2.2, esc0));
             w.Style = (Style)Application.Current.Resources["JanelaAnalyzer"];
             // modo OBS: sem transparência (janela "layered" aparece preta na captura BitBlt do OBS)
             
@@ -842,6 +847,7 @@ namespace BloodstoneHunt
                 var titulo = (FrameworkElement)w.Template.FindName("PART_Titulo", w);
                 titulo.MouseLeftButtonDown += (s2, e2) => { if (e2.ButtonState == MouseButtonState.Pressed) { w.DragMove(); SalvarPosicoes(); } };
                 var corpoP = (FrameworkElement)w.Template.FindName("PART_Corpo", w);
+                Ajustavel(w, j.Chave, double.Parse(d[4], CultureInfo.InvariantCulture));
                 ((Button)w.Template.FindName("PART_Recolher", w)).Click += (s2, e2) => corpoP.Visibility = corpoP.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
                 ((Button)w.Template.FindName("PART_Fechar", w)).Click += (s2, e2) =>
                 {
@@ -867,6 +873,29 @@ namespace BloodstoneHunt
             var j = janelas[chave];
             if (j.W.IsVisible) { j.W.Activate(); return; }
             j.W.Show(); if (trava != null) trava.Aplicar(j.W); P.Abertas.Add(chave); P.Salvar();
+        }
+        /** janela com tamanho ajustável: o puxador do canto muda a escala de tudo (texto, ícones e espaços) */
+        void Ajustavel(Window w, string chave, double largura)
+        {
+            var raiz = w.Template.FindName("PART_Raiz", w) as FrameworkElement;
+            var puxador = w.Template.FindName("PART_Ajustar", w) as System.Windows.Controls.Primitives.Thumb;
+            if (raiz == null || puxador == null) return;
+            double escala; if (!P.Escalas.TryGetValue(chave, out escala)) escala = 1;
+            Action<double> aplicar = e =>
+            {
+                escala = Math.Max(1.0, Math.Min(2.2, e));   // mínimo: o tamanho original (menor que isso corta texto)
+                raiz.LayoutTransform = Math.Abs(escala - 1) < 0.001 ? null : new ScaleTransform(escala, escala);
+                w.Width = largura * escala;
+            };
+            Action salvar = () => { if (Math.Abs(escala - 1) < 0.001) P.Escalas.Remove(chave); else P.Escalas[chave] = escala; P.Salvar(); };
+            aplicar(escala);
+            puxador.Visibility = Visibility.Visible;
+            // o arraste vem nas coordenadas do puxador (já em escala): converte para pixels da tela
+            puxador.DragDelta += (s, e) => aplicar((w.Width + Math.Max(e.HorizontalChange, e.VerticalChange) * escala) / largura);
+            puxador.DragCompleted += (s, e) => salvar();
+            puxador.MouseDoubleClick += (s, e) => { aplicar(1); salvar(); };
+            // Ctrl + roda do mouse também muda o tamanho
+            w.PreviewMouseWheel += (s, e) => { if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return; aplicar(escala + (e.Delta > 0 ? 0.05 : -0.05)); salvar(); e.Handled = true; };
         }
         void SalvarPosicoes()
         {
@@ -1561,6 +1590,9 @@ namespace BloodstoneHunt
         void Captura(string arquivo, bool relatorio = false)
         {
             Carregar();
+#if TESTE
+            { var et = Environment.GetEnvironmentVariable("ANALYZER_ESCALA"); if (et != null) foreach (var d in Definicoes) P.Escalas[d[0]] = double.Parse(et, CultureInfo.InvariantCulture); }   // print de teste com as janelas aumentadas
+#endif
             P.PorCima = false;
             if (!relatorio) foreach (var d in Definicoes) Criar(d);
             var ex = new[] {

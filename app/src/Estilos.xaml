@@ -94,6 +94,8 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Window">
+          <!-- PART_Raiz recebe a escala escolhida pelo puxador PART_Ajustar (canto inferior direito) -->
+          <Grid x:Name="PART_Raiz">
           <Border CornerRadius="10" Background="#17191E" BorderBrush="#30343C" BorderThickness="1" Margin="4">
             <Border.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="0" Opacity="0.6"/></Border.Effect>
             <DockPanel>
@@ -114,6 +116,17 @@
               <ContentPresenter x:Name="PART_Corpo" Margin="8,6,8,8"/>
             </DockPanel>
           </Border>
+          <Thumb x:Name="PART_Ajustar" Visibility="Collapsed" Width="13" Height="13" Margin="0,0,6,6" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="SizeNWSE"
+                 ToolTip="Arraste para aumentar ou diminuir a janela (Ctrl + roda do mouse também). Clique duplo volta ao tamanho original.">
+            <Thumb.Template>
+              <ControlTemplate TargetType="Thumb">
+                <Grid Background="Transparent">
+                  <Path Data="M 12,3 L 3,12 M 12,7 L 7,12 M 12,11 L 11,12" Stroke="#5A606B" StrokeThickness="1.2"/>
+                </Grid>
+              </ControlTemplate>
+            </Thumb.Template>
+          </Thumb>
+          </Grid>
         </ControlTemplate>
       </Setter.Value>
     </Setter>
