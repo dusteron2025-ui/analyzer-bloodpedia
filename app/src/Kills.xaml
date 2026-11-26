@@ -20,10 +20,11 @@
             <Image Source="{Binding Imagem}" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality"/>
           </Border>
           <StackPanel Grid.Column="1" VerticalAlignment="Center">
-            <Grid>
-              <TextBlock Text="{Binding Nome}" Foreground="#C9CDD4" TextTrimming="CharacterEllipsis" MaxWidth="100" HorizontalAlignment="Left"/>
-              <TextBlock HorizontalAlignment="Right"><Run Text="{Binding Valor, Mode=OneWay}" Foreground="#E9EBEE" FontWeight="SemiBold"/><Run Text="{Binding Extra, Mode=OneWay}" Foreground="#7D828C"/></TextBlock>
-            </Grid>
+            <!-- o valor fica à direita e o nome usa o resto da largura (janela mais larga = nome inteiro) -->
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Margin="6,0,0,0"><Run Text="{Binding Valor, Mode=OneWay}" Foreground="#E9EBEE" FontWeight="SemiBold"/><Run Text="{Binding Extra, Mode=OneWay}" Foreground="#7D828C"/></TextBlock>
+              <TextBlock Text="{Binding Nome}" Foreground="#C9CDD4" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
             <ProgressBar Style="{StaticResource BarraFina}" Value="{Binding Percentual, Mode=OneWay}" Foreground="{Binding Cor}" Margin="0,3,0,0"/>
           </StackPanel>
         </Grid>

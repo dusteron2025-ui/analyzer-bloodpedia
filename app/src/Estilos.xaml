@@ -78,6 +78,29 @@
     </Setter>
   </Style>
 
+  <!-- borda invisível que muda o tamanho da janela -->
+  <Style x:Key="PuxadorInvisivel" TargetType="Thumb">
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb"><Border Background="Transparent"/></ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <!-- barra de rolagem fina e escura -->
+  <Style x:Key="BarraRolagem" TargetType="ScrollBar">
+    <Setter Property="Width" Value="5"/>
+    <Setter Property="MinWidth" Value="5"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ScrollBar">
+          <Track x:Name="PART_Track" IsDirectionReversed="True">
+            <Track.Thumb>
+              <Thumb>
+                <Thumb.Template><ControlTemplate TargetType="Thumb"><Border CornerRadius="2.5" Background="#3A3F49"/></ControlTemplate></Thumb.Template>
+              </Thumb>
+            </Track.Thumb>
+          </Track>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- janela compacta: barra de título fina com ícone, nome e botões -->
   <Style x:Key="JanelaAnalyzer" TargetType="Window">
     <Setter Property="WindowStyle" Value="None"/>
@@ -94,7 +117,7 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Window">
-          <!-- PART_Raiz recebe a escala escolhida pelo puxador PART_Ajustar (canto inferior direito) -->
+          <!-- bordas e canto (PART_Ajustar*) mudam a largura e a altura; o conteúdo se reorganiza e, se não couber, rola -->
           <Grid x:Name="PART_Raiz">
           <Border CornerRadius="10" Background="#17191E" BorderBrush="#30343C" BorderThickness="1" Margin="4">
             <Border.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="0" Opacity="0.6"/></Border.Effect>
@@ -113,11 +136,16 @@
                   </StackPanel>
                 </Grid>
               </Border>
-              <ContentPresenter x:Name="PART_Corpo" Margin="8,6,8,8"/>
+              <ScrollViewer x:Name="PART_Rolagem" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" Margin="8,6,4,8">
+                <ScrollViewer.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource BarraRolagem}"/></ScrollViewer.Resources>
+                <ContentPresenter x:Name="PART_Corpo" Margin="0,0,4,0" VerticalAlignment="Top"/>
+              </ScrollViewer>
             </DockPanel>
           </Border>
+          <Thumb x:Name="PART_AjustarLargura" Visibility="Collapsed" Width="6" Margin="0,14,1,14" HorizontalAlignment="Right" Cursor="SizeWE" Style="{StaticResource PuxadorInvisivel}"/>
+          <Thumb x:Name="PART_AjustarAltura" Visibility="Collapsed" Height="6" Margin="14,0,14,1" VerticalAlignment="Bottom" Cursor="SizeNS" Style="{StaticResource PuxadorInvisivel}"/>
           <Thumb x:Name="PART_Ajustar" Visibility="Collapsed" Width="13" Height="13" Margin="0,0,6,6" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="SizeNWSE"
-                 ToolTip="Arraste para aumentar ou diminuir a janela (Ctrl + roda do mouse também). Clique duplo volta ao tamanho original.">
+                 ToolTip="Arraste o canto ou as bordas para mudar o tamanho da janela. Clique duplo volta ao tamanho original.">
             <Thumb.Template>
               <ControlTemplate TargetType="Thumb">
                 <Grid Background="Transparent">
@@ -173,16 +201,15 @@
   <!-- linha com barra: nome, valor e porcentagem (dano por tipo, por fonte, kills) -->
   <DataTemplate x:Key="LinhaBarra">
     <StackPanel Margin="0,2,0,4">
-      <Grid>
-        <StackPanel Orientation="Horizontal">
-          <Ellipse Width="7" Height="7" Fill="{Binding Cor}" VerticalAlignment="Center" Margin="0,0,5,0"/>
-          <TextBlock Text="{Binding Nome}" Foreground="#C9CDD4" TextTrimming="CharacterEllipsis" MaxWidth="110"/>
-        </StackPanel>
-        <TextBlock HorizontalAlignment="Right">
+      <!-- valor à direita; o nome usa o resto da largura (janela mais larga = nome inteiro) -->
+      <DockPanel>
+        <Ellipse DockPanel.Dock="Left" Width="7" Height="7" Fill="{Binding Cor}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+        <TextBlock DockPanel.Dock="Right" Margin="6,0,0,0">
           <Run Text="{Binding Valor, Mode=OneWay}" Foreground="#E9EBEE" FontWeight="SemiBold"/>
           <Run Text="{Binding Extra, Mode=OneWay}" Foreground="#7D828C"/>
         </TextBlock>
-      </Grid>
+        <TextBlock Text="{Binding Nome}" Foreground="#C9CDD4" TextTrimming="CharacterEllipsis"/>
+      </DockPanel>
       <ProgressBar Style="{StaticResource BarraFina}" Value="{Binding Percentual, Mode=OneWay}" Foreground="{Binding Cor}" Margin="0,3,0,0"/>
     </StackPanel>
   </DataTemplate>

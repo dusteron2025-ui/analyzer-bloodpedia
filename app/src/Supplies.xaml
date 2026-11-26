@@ -24,10 +24,11 @@
           <Border Width="24" Height="24" CornerRadius="6" Background="#22252C" HorizontalAlignment="Left">
             <Image Source="{Binding Imagem}" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality"/>
           </Border>
-          <Grid Grid.Column="1" VerticalAlignment="Center">
-            <TextBlock Text="{Binding Nome}" Foreground="#C9CDD4" TextTrimming="CharacterEllipsis" MaxWidth="100" HorizontalAlignment="Left"/>
-            <TextBlock HorizontalAlignment="Right"><Run Text="{Binding Valor, Mode=OneWay}" Foreground="#E9EBEE" FontWeight="SemiBold"/><Run Text="{Binding Extra, Mode=OneWay}" Foreground="#7D828C"/></TextBlock>
-          </Grid>
+          <!-- o valor fica à direita e o nome usa o resto da largura (janela mais larga = nome inteiro) -->
+          <DockPanel Grid.Column="1" VerticalAlignment="Center">
+            <TextBlock DockPanel.Dock="Right" Margin="6,0,0,0"><Run Text="{Binding Valor, Mode=OneWay}" Foreground="#E9EBEE" FontWeight="SemiBold"/><Run Text="{Binding Extra, Mode=OneWay}" Foreground="#7D828C"/></TextBlock>
+            <TextBlock Text="{Binding Nome}" Foreground="#C9CDD4" TextTrimming="CharacterEllipsis"/>
+          </DockPanel>
         </Grid>
         </Border>
       </DataTemplate>

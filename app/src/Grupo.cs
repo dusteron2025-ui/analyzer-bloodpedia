@@ -282,7 +282,7 @@ namespace BloodstoneHunt
                 grupoCorpo = new StackPanel();
                 var w = new Window { Title = "Party Hunt", Width = 236, Content = grupoCorpo, Tag = Cor("#C25CE0"), Uid = "", Topmost = P.PorCima };
                 w.Style = (Style)Application.Current.Resources["JanelaAnalyzer"];
-                double escG; if (P.Escalas.TryGetValue("grupo", out escG)) w.Width = 236 * Math.Max(1.0, Math.Min(2.2, escG));   // tamanho salvo
+                double[] tamG; if (P.Tamanhos.TryGetValue("grupo", out tamG)) { w.Width = Math.Max(236, tamG[0]); if (tamG[1] > 0) { w.SizeToContent = SizeToContent.Manual; w.Height = tamG[1]; } }   // tamanho salvo
                 double[] pos; w.WindowStartupLocation = WindowStartupLocation.Manual;
                 if (P.Posicoes.TryGetValue("grupo", out pos)) { w.Left = pos[0]; w.Top = pos[1]; } else { var h = janelas["hunt"].W; w.Left = h.Left - 244; w.Top = h.Top; }
                 janelaGrupo = new Janela { Chave = "grupo", W = w, Corpo = grupoCorpo };
