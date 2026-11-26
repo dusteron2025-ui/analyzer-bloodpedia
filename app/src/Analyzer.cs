@@ -1742,6 +1742,7 @@ namespace BloodstoneHunt
         {
             Carregar();
 #if TESTE
+            if (Environment.GetEnvironmentVariable("ANALYZER_LIMPO") != null) P.Tamanhos.Clear();   // print de teste sem os tamanhos salvos
             { var et = Environment.GetEnvironmentVariable("ANALYZER_TAMANHO"); if (et != null) { var v = et.Split(';'); foreach (var d in Definicoes) P.Tamanhos[d[0]] = new[] { double.Parse(d[4], CultureInfo.InvariantCulture) + double.Parse(v[0], CultureInfo.InvariantCulture), double.Parse(v[1], CultureInfo.InvariantCulture) }; } }   // print de teste: janelas mais largas ("+largura;altura")
             { var ac = Environment.GetEnvironmentVariable("ANALYZER_ACESS"); if (ac != null) { var v = ac.Split(';'); Acess.Idioma = v[0]; Acess.FatorTexto = double.Parse(v[1], CultureInfo.InvariantCulture); Acess.Contraste = v[2] == "1"; Acess.Fundo = double.Parse(v[3], CultureInfo.InvariantCulture); } }   // print de teste: idioma;texto;contraste;fundo
 #endif

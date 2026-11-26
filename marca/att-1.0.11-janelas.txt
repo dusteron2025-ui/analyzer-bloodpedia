@@ -1,0 +1,26 @@
+﻿=== Hunt · Analyzer Bloodpedia ===
+Sessão: 00:23h (25/11/2026 21:57)
+XP ganho: 184.320 (470.594/h)
+Loot: 44 gp
+Supplies: 1.760 gp
+Balanço: -1.716 gp (-4.381/h)
+Dano: 2.506 (6.398/h)
+Dano recebido: 235 · Cura: 3.120
+Monstros mortos (10):
+  4x Cockroach
+  2x Rat
+  1x Chicken
+  1x Cat
+  1x Bodovelha
+  1x Porcoelho
+Loot:
+  1x Rabo de Rato (16 gp)
+  2x Pata de Barata (10 gp)
+  7x Punhado de Terra (7 gp)
+  1x Casca de Barata (7 gp)
+  3x Ovo de Galinha (3 gp)
+  1x Ovo de Inseto (1 gp)
+  1x Ametista
+Supplies usados:
+  7x Poção de Mana Média (1.680 gp)
+  1x Elixir de Vida Médio (80 gp)
