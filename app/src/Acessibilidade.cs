@@ -28,6 +28,15 @@ namespace BloodstoneHunt
         static bool mexeu;                           // alguma opção já saiu do padrão nesta sessão (para conseguir voltar)
         static bool Padrao { get { return Idioma == "pt" && FatorTexto == 1 && !Contraste && Fundo == 1; } }
 
+        // fonte de cada janela: cresce um pouco quando a pessoa deixa a janela mais larga (1 = normal)
+        public static readonly DependencyProperty FatorJanelaProperty = DependencyProperty.RegisterAttached("FatorJanela", typeof(double), typeof(Acess), new PropertyMetadata(1.0));
+        public static void DefinirFatorJanela(Window w, double f)
+        {
+            if (Math.Abs((double)w.GetValue(FatorJanelaProperty) - f) < 0.001) return;
+            w.SetValue(FatorJanelaProperty, f); mexeu = true; Percorrer(w);
+        }
+        static double fatorAtual = 1;   // tamanho do texto × fonte da janela que está sendo percorrida
+
         // ---------------- idioma ----------------
         static Dictionary<string, string[]> dic;
         static void CarregarDicionario()
@@ -147,7 +156,7 @@ namespace BloodstoneHunt
                 if (!double.IsNaN(bt.Height) && bt.Height > 0)
                 {
                     if (o.Altura == 0 || Math.Abs(bt.Height - o.AlturaAplicada) > 0.01) o.Altura = bt.Height;
-                    o.AlturaAplicada = Math.Round(o.Altura * FatorTexto); if (Math.Abs(bt.Height - o.AlturaAplicada) > 0.01) bt.Height = o.AlturaAplicada;
+                    o.AlturaAplicada = Math.Round(o.Altura * fatorAtual); if (Math.Abs(bt.Height - o.AlturaAplicada) > 0.01) bt.Height = o.AlturaAplicada;
                 }
                 return;
             }
@@ -186,7 +195,7 @@ namespace BloodstoneHunt
         {
             var atual = (double)d.GetValue(p);
             if (o.Fonte == 0 || Math.Abs(atual - o.FonteAplicada) > 0.01) o.Fonte = atual;
-            o.FonteAplicada = Math.Round(o.Fonte * FatorTexto, 1);
+            o.FonteAplicada = Math.Round(o.Fonte * fatorAtual, 1);
             if (Math.Abs(atual - o.FonteAplicada) > 0.01) d.SetValue(p, o.FonteAplicada);
         }
         static void Cor(Orig o, DependencyObject d, DependencyProperty p)
@@ -207,9 +216,16 @@ namespace BloodstoneHunt
         }
         static void Percorrer(DependencyObject d)
         {
+            if (d == null) return;
+            var w = d as Window ?? Window.GetWindow(d);
+            fatorAtual = FatorTexto * (w != null ? (double)w.GetValue(FatorJanelaProperty) : 1);
+            Descer(d);
+        }
+        static void Descer(DependencyObject d)
+        {
             Aplicar(d);
             int n = 0; try { n = VisualTreeHelper.GetChildrenCount(d); } catch { }
-            for (int i = 0; i < n; i++) Percorrer(VisualTreeHelper.GetChild(d, i));
+            for (int i = 0; i < n; i++) Descer(VisualTreeHelper.GetChild(d, i));
         }
     }
 }

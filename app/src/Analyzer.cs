@@ -903,6 +903,8 @@ namespace BloodstoneHunt
             Action<double, double> aplicar = (l, a) =>
             {
                 w.Width = Math.Max(largura * Acess.FatorTexto, Math.Min(MaxLargura, l));   // mínimo: a largura original (maior com texto grande), para não cortar texto
+                // janela mais larga: a fonte cresce um pouco junto (metade do aumento da largura, até +35%)
+                Acess.DefinirFatorJanela(w, Math.Round(Math.Max(1, Math.Min(1.35, 1 + (w.Width / (largura * Acess.FatorTexto) - 1) * 0.5)) * 20) / 20);
                 if (a <= 0) { w.SizeToContent = SizeToContent.Height; altura = 0; }
                 else { altura = Math.Max(MinAltura, Math.Min(MaxAltura, a)); w.SizeToContent = SizeToContent.Manual; w.Height = altura; }
             };
@@ -1523,8 +1525,53 @@ namespace BloodstoneHunt
         }
         static string Inteiro(long v) { return v.ToString("N0", BR); }
 
+        // ---------------- janela Hunt que se reorganiza com o tamanho ----------------
+        // Com a janela alta (altura escolhida pela pessoa): os atalhos ficam um embaixo do outro, com o nome completo, e a
+        // lista de monstros mostra mais linhas. O rodapé fica sempre embaixo. Volta ao normal quando o espaço acaba.
+        int maxKillsHunt = 6; bool atalhosEmpilhados, huntResponsiva;
+        static readonly string[] AtalhosCurtos = { "Loot", "XP", "Kills", "Supp.", "Input" }, AtalhosLongos = { "Loot Analyzer", "XP Analyzer", "Kills Analyzer", "Supplies", "Dano Recebido" };
+        void AjustarHunt()
+        {
+            Janela j; if (!janelas.TryGetValue("hunt", out j) || !j.W.IsLoaded || j.W.Template == null) return;
+            var w = j.W; var sv = w.Template.FindName("PART_Rolagem", w) as ScrollViewer;
+            var topo = j.Corpo.FindName("Topo") as FrameworkElement; var rod = j.Corpo.FindName("Rodape") as FrameworkElement;
+            var at = j.Corpo.FindName("Atalhos") as System.Windows.Controls.Primitives.UniformGrid;
+            if (sv == null || topo == null || rod == null || at == null || at.Children.Count == 0) return;
+            if (!huntResponsiva)
+            {
+                // o conteúdo ocupa pelo menos a altura visível: assim o rodapé fica embaixo
+                huntResponsiva = true;
+                var cp = w.Template.FindName("PART_Corpo", w) as FrameworkElement;
+                if (cp != null) cp.SetBinding(FrameworkElement.MinHeightProperty, new System.Windows.Data.Binding("ViewportHeight") { Source = sv });
+                w.SizeChanged += (s2, e2) => w.Dispatcher.BeginInvoke(new Action(AjustarHunt), System.Windows.Threading.DispatcherPriority.Background);
+            }
+            bool manual = w.SizeToContent == SizeToContent.Manual;
+            double livre = manual ? sv.ViewportHeight - topo.ActualHeight - rod.ActualHeight : 0;
+            double linhaBotao = ((FrameworkElement)at.Children[0]).ActualHeight + 3;
+            bool empilhar = manual && (atalhosEmpilhados ? livre >= -1 : livre >= 4 * linhaBotao + 6);
+            if (empilhar != atalhosEmpilhados)
+            {
+                atalhosEmpilhados = empilhar; at.Columns = empilhar ? 1 : 5;
+                for (int i = 0; i < at.Children.Count && i < AtalhosCurtos.Length; i++)
+                {
+                    var tb = ((Button)at.Children[i]).Content as TextBlock;
+                    if (tb != null) tb.Text = Acess.T(empilhar ? AtalhosLongos[i] : AtalhosCurtos[i]);
+                }
+                return;   // o resto no próximo ciclo, já com o novo tamanho do rodapé
+            }
+            // monstros: uma linha a mais para cada espaço que sobra (de 6 até 20)
+            if (!manual) maxKillsHunt = 6;
+            else
+            {
+                double linhaM = 16 * Acess.FatorTexto * (double)w.GetValue(Acess.FatorJanelaProperty);
+                if (livre >= linhaM) maxKillsHunt = Math.Min(20, maxKillsHunt + (int)(livre / linhaM));
+                else if (livre < 0) maxKillsHunt = Math.Max(6, maxKillsHunt - (int)Math.Ceiling(-livre / linhaM));
+            }
+        }
+
         void Atualizar()
         {
+            AjustarHunt();
             V.S("Status", statusLeitor); V.S("StatusCurto", statusCurto);
             // topo: o personagem a que este analyzer está conectado
             var mJogo = L != null ? L.M : null; var pers = mJogo != null ? nomePersonagem : null;
@@ -1584,10 +1631,10 @@ namespace BloodstoneHunt
             V.S("SemLoot", loot.Count == 0 ? Visibility.Visible : Visibility.Collapsed);
             V.S("SemRecebido", rec == 0 ? Visibility.Visible : Visibility.Collapsed);
             V.S("TemTipos", tipos.Any(t => t.Key != "") ? Visibility.Visible : Visibility.Collapsed);
-            V.S("KillsMais", kills.Count > 6 ? "+ " + (kills.Count - 6) + " espécies" : "");
+            V.S("KillsMais", kills.Count > maxKillsHunt ? "+ " + (kills.Count - maxKillsHunt) + " espécies" : "");
 
             // resumo no Hunt Analyzer: "103x dark torturer"
-            Sincronizar(V.KillsResumo, kills.Take(6).Select(k => k.Key).ToList(), n => new Linha { Chave = n, Nome = n }, x => x.Chave);
+            Sincronizar(V.KillsResumo, kills.Take(maxKillsHunt).Select(k => k.Key).ToList(), n => new Linha { Chave = n, Nome = n }, x => x.Chave);
             for (int i = 0; i < V.KillsResumo.Count; i++) V.KillsResumo[i].S("Valor", Inteiro(kills[i].Value));
 
             Sincronizar(V.Kills, kills.Select(k => k.Key).ToList(), n => new Linha { Chave = n, Nome = n, Imagem = C.IconeCriatura(n) }, x => x.Chave);
@@ -1710,6 +1757,9 @@ namespace BloodstoneHunt
                 var w = janelas[d[0]].W; w.Left = -10000; w.ShowInTaskbar = false; w.Show();
                 w.Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.ContextIdle);
                 w.UpdateLayout();
+#if TESTE
+                if (d[0] == "hunt") for (int k = 0; k < 4; k++) { AjustarHunt(); Atualizar(); w.Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.ContextIdle); w.UpdateLayout(); }   // alguns ciclos da janela que se reorganiza
+#endif
                 var raiz = (FrameworkElement)VisualTreeHelper.GetChild(w, 0);
                 var rtb = new RenderTargetBitmap((int)w.ActualWidth, (int)w.ActualHeight, 96, 96, PixelFormats.Pbgra32);
                 rtb.Render(raiz); imgs.Add(rtb);
