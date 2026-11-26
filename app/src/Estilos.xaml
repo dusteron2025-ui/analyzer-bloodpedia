@@ -64,10 +64,13 @@
     <Setter Property="Focusable" Value="False"/>
     <Setter Property="Margin" Value="0,0,3,3"/>
     <Setter Property="Padding" Value="6,0"/>
+    <Setter Property="Background" Value="#262930"/>
+    <Setter Property="BorderBrush" Value="#30343C"/>
+    <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
-          <Border x:Name="b" CornerRadius="6" Background="#262930" BorderBrush="#30343C" BorderThickness="1" Padding="{TemplateBinding Padding}">
+          <Border x:Name="b" CornerRadius="6" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Border>
           <ControlTemplate.Triggers>
@@ -119,7 +122,7 @@
         <ControlTemplate TargetType="Window">
           <!-- bordas e canto (PART_Ajustar*) mudam a largura e a altura; o conteúdo se reorganiza e, se não couber, rola -->
           <Grid x:Name="PART_Raiz">
-          <Border CornerRadius="10" Background="#17191E" BorderBrush="#30343C" BorderThickness="1" Margin="4">
+          <Border x:Name="PART_Fundo" CornerRadius="10" Background="#17191E" BorderBrush="#30343C" BorderThickness="1" Margin="4">
             <Border.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="0" Opacity="0.6"/></Border.Effect>
             <DockPanel>
               <Border x:Name="PART_Titulo" DockPanel.Dock="Top" Height="24" CornerRadius="10,10,0,0" Background="#22252C" BorderBrush="#30343C" BorderThickness="0,0,0,1">

@@ -437,6 +437,8 @@ namespace BloodstoneHunt
         public Dictionary<string, long> Precos = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         public HashSet<string> Escondidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         public bool PorCima = true, ModoObs, AvisoUso, AvisoAdmin;
+        // acessibilidade (botão de configurações): idioma, tamanho do texto, alto contraste e fundo das janelas
+        public string Idioma = "pt"; public double FatorTexto = 1, Fundo = 1; public bool Contraste;
         public Dictionary<string, double[]> Posicoes = new Dictionary<string, double[]>();
         public Dictionary<string, double[]> Tamanhos = new Dictionary<string, double[]>();   // largura e altura escolhidas de cada janela (altura 0 = automática)
         public HashSet<string> Abertas = new HashSet<string>();
@@ -460,6 +462,10 @@ namespace BloodstoneHunt
                         else if (p[0] == "obs") ModoObs = p[1].Trim() == "1";
                         else if (p[0] == "avisouso") AvisoUso = p[1].Trim() == "1";
                         else if (p[0] == "avisoadmin") AvisoAdmin = p[1].Trim() == "1";
+                        else if (p[0] == "idioma") { var v = p[1].Trim(); if (v == "pt" || v == "en" || v == "es") Idioma = v; }
+                        else if (p[0] == "texto") { double v; if (double.TryParse(p[1], NumberStyles.Float, CultureInfo.InvariantCulture, out v) && v >= 1 && v <= 1.3) FatorTexto = v; }
+                        else if (p[0] == "fundo") { double v; if (double.TryParse(p[1], NumberStyles.Float, CultureInfo.InvariantCulture, out v) && v >= 0.5 && v <= 1) Fundo = v; }
+                        else if (p[0] == "contraste") Contraste = p[1].Trim() == "1";
                         else if (p[0] == "abertas") foreach (var x in p[1].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)) Abertas.Add(x.Trim());
                         else if (p[0].StartsWith("tam."))
                         {
@@ -481,7 +487,7 @@ namespace BloodstoneHunt
             {
                 File.WriteAllLines(Path.Combine(pasta, "precos.tsv"), Precos.Select(k => k.Key + "\t" + k.Value), Encoding.UTF8);
                 File.WriteAllLines(Path.Combine(pasta, "escondidos.txt"), Escondidos, Encoding.UTF8);
-                var o = new List<string> { "porcima=" + (PorCima ? 1 : 0), "obs=" + (ModoObs ? 1 : 0), "avisouso=" + (AvisoUso ? 1 : 0), "avisoadmin=" + (AvisoAdmin ? 1 : 0), "abertas=" + string.Join(",", Abertas) };
+                var o = new List<string> { "porcima=" + (PorCima ? 1 : 0), "obs=" + (ModoObs ? 1 : 0), "avisouso=" + (AvisoUso ? 1 : 0), "avisoadmin=" + (AvisoAdmin ? 1 : 0), "idioma=" + Idioma, "texto=" + FatorTexto.ToString(CultureInfo.InvariantCulture), "fundo=" + Fundo.ToString(CultureInfo.InvariantCulture), "contraste=" + (Contraste ? 1 : 0), "abertas=" + string.Join(",", Abertas) };
                 foreach (var k in Tamanhos) o.Add("tam." + k.Key + "=" + k.Value[0].ToString("0", CultureInfo.InvariantCulture) + ";" + k.Value[1].ToString("0", CultureInfo.InvariantCulture));
                 foreach (var k in Posicoes) o.Add("pos." + k.Key + "=" + k.Value[0].ToString(CultureInfo.InvariantCulture) + ";" + k.Value[1].ToString(CultureInfo.InvariantCulture));
                 File.WriteAllLines(Path.Combine(pasta, "opcoes.txt"), o);
@@ -766,6 +772,7 @@ namespace BloodstoneHunt
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             app.DispatcherUnhandledException += (s, e) => { MessageBox.Show(e.Exception.ToString(), Info.Nome); e.Handled = true; };
             using (var r = typeof(Programa).Assembly.GetManifestResourceStream("Estilos.xaml")) app.Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Load(r));
+            Acess.Ligar();   // idioma, tamanho do texto, contraste e fundo em tudo o que aparece na tela
             var p = new Programa();
             if (args.Length == 2 && args[0] == "--captura") { p.Captura(args[1]); return; }
             if (args.Length == 2 && args[0] == "--relatorio") { p.Captura(args[1], true); return; }
@@ -775,6 +782,7 @@ namespace BloodstoneHunt
             if (args.Length == 2 && args[0] == "--testar-servidor-grupo") { int st; var r = GrupoServidor.Post("grupo", new Dictionary<string, object> { { "acao", "entrar" }, { "codigo", "AAAAAA" }, { "nome", "Teste" } }, out st); File.WriteAllText(args[1], st + " " + GrupoServidor.Txt(r, "erro"), Encoding.UTF8); return; }
             if (args.Length == 2 && args[0] == "--tutorial-grupo") { p.TutorialGrupo(args[1]); return; }
             if (args.Length == 2 && args[0] == "--achar-nome") { p.AcharNome(args[1]); return; }
+            if (args.Length == 2 && args[0] == "--testar-config") { p.TestarConfig(args[1]); return; }
             if (args.Length == 2 && args[0] == "--testar-grupo") { p.TestarGrupo(args[1]); return; }
             if (args.Length == 2 && args[0] == "--testar-janelas") { p.TestarJanelas(args[1]); return; }
             if (args.Length == 5 && args[0] == "--testar-atualizacao") { string h; using (var f = File.OpenRead(args[2])) h = BitConverter.ToString(System.Security.Cryptography.SHA256.Create().ComputeHash(f)).Replace("-", "").ToLowerInvariant(); File.WriteAllText(args[4], Atualizacao.AssinaturaValida(args[1], h, File.ReadAllText(args[3])) ? "VALIDA" : "INVALIDA"); return; }
@@ -793,6 +801,7 @@ namespace BloodstoneHunt
             O = Offsets.Carregar(Path.Combine(pastaApp, "offsets.ini"));
             C = new Catalogo(pastaApp);
             P = new Preferencias();
+            Acess.Idioma = P.Idioma; Acess.FatorTexto = P.FatorTexto; Acess.Contraste = P.Contraste; Acess.Fundo = P.Fundo;
             L = new LeitorJogo(O);
         }
 
@@ -833,6 +842,7 @@ namespace BloodstoneHunt
             FrameworkElement corpo;
             using (var r = typeof(Programa).Assembly.GetManifestResourceStream(Recurso(d[0]))) corpo = (FrameworkElement)XamlReader.Load(r);
             var w = new Window { Title = d[1], Width = double.Parse(d[4], CultureInfo.InvariantCulture), Content = corpo, DataContext = V, Tag = Cor(d[2]), Uid = d[3] };
+            w.Width *= Acess.FatorTexto;   // texto maior: janela proporcionalmente mais larga
             double[] tam0; if (P.Tamanhos.TryGetValue(d[0], out tam0)) { w.Width = Math.Max(w.Width, tam0[0]); if (tam0[1] > 0) { w.SizeToContent = SizeToContent.Manual; w.Height = tam0[1]; } }   // tamanho salvo
             w.Style = (Style)Application.Current.Resources["JanelaAnalyzer"];
             // modo OBS: sem transparência (janela "layered" aparece preta na captura BitBlt do OBS)
@@ -892,7 +902,7 @@ namespace BloodstoneHunt
             double altura = tam != null ? tam[1] : 0;   // a última altura escolhida (0 = automática)
             Action<double, double> aplicar = (l, a) =>
             {
-                w.Width = Math.Max(largura, Math.Min(MaxLargura, l));   // mínimo: a largura original (menos que isso corta texto)
+                w.Width = Math.Max(largura * Acess.FatorTexto, Math.Min(MaxLargura, l));   // mínimo: a largura original (maior com texto grande), para não cortar texto
                 if (a <= 0) { w.SizeToContent = SizeToContent.Height; altura = 0; }
                 else { altura = Math.Max(MinAltura, Math.Min(MaxAltura, a)); w.SizeToContent = SizeToContent.Manual; w.Height = altura; }
             };
@@ -902,6 +912,7 @@ namespace BloodstoneHunt
                 P.Salvar();
             };
             aplicar(tam != null ? tam[0] : largura, altura);
+            reajustes.Add(() => aplicar(w.Width, altura));   // ao mudar o tamanho do texto
             canto.Visibility = direita.Visibility = baixo.Visibility = Visibility.Visible;
             direita.DragDelta += (s, e) => aplicar(w.Width + e.HorizontalChange, altura);
             baixo.DragDelta += (s, e) => aplicar(w.Width, (altura > 0 ? altura : w.ActualHeight) + e.VerticalChange);
@@ -916,6 +927,55 @@ namespace BloodstoneHunt
                 else { aplicar(w.Width, guardada); canto.Visibility = baixo.Visibility = Visibility.Visible; }
             };
         }
+        readonly List<Action> reajustes = new List<Action>();
+
+        // ---------------- configurações (acessibilidade) ----------------
+        Window janelaConfig;
+        void AbrirConfiguracoes()
+        {
+            if (janelaConfig != null && janelaConfig.IsVisible) { janelaConfig.Activate(); return; }
+            var w = Dialogo("Configurações", janelas["hunt"].W, 280); janelaConfig = w; w.Uid = "";   // engrenagem
+            var st = new StackPanel();
+            Action aplicar = () =>
+            {
+                Acess.Idioma = P.Idioma; Acess.FatorTexto = P.FatorTexto; Acess.Contraste = P.Contraste; Acess.Fundo = P.Fundo;
+                var todas = janelas.Values.Select(j => j.W).ToList(); todas.Add(w);
+                Acess.Reaplicar(todas);
+                foreach (var a in reajustes) a();
+                P.Salvar();
+            };
+            // um grupo de opções: botões lado a lado, o escolhido destacado
+            Func<string, string, string[], Func<int>, Action<int>, FrameworkElement> opcoes = (titulo, dica, rotulos, atual, escolher) =>
+            {
+                var bloco = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
+                bloco.Children.Add(Titulo(titulo));
+                if (dica != null) { var p = Paragrafo(dica, "#8B909A"); p.Margin = new Thickness(0, -1, 0, 5); bloco.Children.Add(p); }
+                var g = new System.Windows.Controls.Primitives.UniformGrid { Columns = rotulos.Length, Rows = 1 };
+                var bts = new List<Button>();
+                Action marcar = () => { for (int i = 0; i < bts.Count; i++) { bool sel = i == atual(); if (sel) { bts[i].BorderBrush = Cor("#B38CFF"); bts[i].Background = Cor("#2E2545"); bts[i].Foreground = Brushes.White; } else { bts[i].ClearValue(Control.BorderBrushProperty); bts[i].ClearValue(Control.BackgroundProperty); bts[i].ClearValue(Control.ForegroundProperty); } bts[i].FontWeight = sel ? FontWeights.SemiBold : FontWeights.Normal; } };
+                for (int i = 0; i < rotulos.Length; i++)
+                {
+                    int k = i; var b = Botao(rotulos[i]); b.Margin = new Thickness(0, 0, i < rotulos.Length - 1 ? 4 : 0, 0); b.Padding = new Thickness(2, 3, 2, 3);
+                    b.Click += (s, e) => { escolher(k); marcar(); aplicar(); };
+                    bts.Add(b); g.Children.Add(b);
+                }
+                marcar(); bloco.Children.Add(g);
+                return bloco;
+            };
+            var idiomas = new[] { "pt", "en", "es" }; var textos = new[] { 1.0, 1.15, 1.3 }; var fundos = new[] { 1.0, 0.8, 0.6 };
+            st.Children.Add(opcoes("Idioma", null, new[] { "Português", "English", "Español" }, () => Array.IndexOf(idiomas, P.Idioma), i => P.Idioma = idiomas[i]));
+            st.Children.Add(opcoes("Tamanho do texto", null, new[] { "Normal", "Grande", "Maior" }, () => Array.IndexOf(textos, P.FatorTexto), i => P.FatorTexto = textos[i]));
+            st.Children.Add(opcoes("Alto contraste", "Textos mais claros e bordas mais fortes, para ler melhor.", new[] { "Desligado", "Ligado" }, () => P.Contraste ? 1 : 0, i => P.Contraste = i == 1));
+            st.Children.Add(opcoes("Fundo das janelas", "Mais transparente deixa ver o jogo por trás.", new[] { "Sólido", "Translúcido", "Transparente" }, () => Array.IndexOf(fundos, P.Fundo), i => P.Fundo = fundos[i]));
+            st.Children.Add(Separador());
+            var rodape = new Grid();
+            var padrao = Botao("Restaurar padrão"); padrao.HorizontalAlignment = HorizontalAlignment.Left;
+            var fechar = Botao("Fechar"); fechar.HorizontalAlignment = HorizontalAlignment.Right; fechar.Click += (s, e) => w.Close();
+            padrao.Click += (s, e) => { P.Idioma = "pt"; P.FatorTexto = 1; P.Contraste = false; P.Fundo = 1; aplicar(); w.Close(); AbrirConfiguracoes(); };
+            rodape.Children.Add(padrao); rodape.Children.Add(fechar); st.Children.Add(rodape);
+            w.Content = st; w.Show();
+        }
+
         void SalvarPosicoes()
         {
             foreach (var j in janelas.Values) if (j.W.IsLoaded) P.Posicoes[j.Chave] = new[] { j.W.Left, j.W.Top };
@@ -957,6 +1017,7 @@ namespace BloodstoneHunt
                 try { Clipboard.SetText(TextoHunt()); var bc = (Button)s; bc.Content = ""; bc.ToolTip = "Resumo copiado!"; var tm = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) }; tm.Tick += (s2, e2) => { bc.Content = ""; bc.ToolTip = "Copiar o resumo da hunt"; tm.Stop(); }; tm.Start(); }
                 catch (Exception ex) { MessageBox.Show(hunt.W, "Não foi possível copiar: " + ex.Message, Info.Nome); }
             };
+            ((Button)c.FindName("BtnConfig")).Click += (s, e) => AbrirConfiguracoes();
             var fixar = (Button)c.FindName("BtnFixar");
             fixar.Opacity = P.PorCima ? 1 : 0.45;
             fixar.Click += (s, e) =>
@@ -1611,6 +1672,7 @@ namespace BloodstoneHunt
             Carregar();
 #if TESTE
             { var et = Environment.GetEnvironmentVariable("ANALYZER_TAMANHO"); if (et != null) { var v = et.Split(';'); foreach (var d in Definicoes) P.Tamanhos[d[0]] = new[] { double.Parse(d[4], CultureInfo.InvariantCulture) + double.Parse(v[0], CultureInfo.InvariantCulture), double.Parse(v[1], CultureInfo.InvariantCulture) }; } }   // print de teste: janelas mais largas ("+largura;altura")
+            { var ac = Environment.GetEnvironmentVariable("ANALYZER_ACESS"); if (ac != null) { var v = ac.Split(';'); Acess.Idioma = v[0]; Acess.FatorTexto = double.Parse(v[1], CultureInfo.InvariantCulture); Acess.Contraste = v[2] == "1"; Acess.Fundo = double.Parse(v[3], CultureInfo.InvariantCulture); } }   // print de teste: idioma;texto;contraste;fundo
 #endif
             P.PorCima = false;
             if (!relatorio) foreach (var d in Definicoes) Criar(d);

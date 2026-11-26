@@ -1,0 +1,164 @@
+# português	inglês	espanhol — gerado por ferramentas/gerar-idiomas.js; edite lá
+Hunt Analyzer	Hunt Analyzer	Hunt Analyzer
+Loot Analyzer	Loot Analyzer	Analizador de loot
+XP Analyzer	XP Analyzer	Analizador de XP
+Kills Analyzer	Kills Analyzer	Analizador de kills
+Supplies	Supplies	Suministros
+Dano Recebido	Damage Taken	Daño recibido
+Party Hunt	Party Hunt	Party Hunt
+Configurações	Settings	Configuración
+Sessão:	Session:	Sesión:
+XP ganho:	XP gained:	XP ganada:
+XP/h:	XP/h:	XP/h:
+Loot:	Loot:	Loot:
+Supplies:	Supplies:	Suministros:
+Balanço:	Balance:	Balance:
+Balanço/h:	Balance/h:	Balance/h:
+Dano:	Damage:	Daño:
+Dano/h:	Damage/h:	Daño/h:
+Recebido:	Taken:	Recibido:
+Cura:	Healing:	Curación:
+Cura/h:	Healing/h:	Curación/h:
+Monstros mortos:	Monsters killed:	Monstruos eliminados:
+nenhuma morte ainda	no kills yet	ninguna muerte aún
+Loot	Loot	Loot
+XP	XP	XP
+Kills	Kills	Kills
+Supp.	Supp.	Sum.
+Input	Input	Recib.
+Hunt em grupo	Party hunt	Caza en grupo
+em teste	beta	en prueba
+Configurações: idioma, tamanho do texto, contraste e fundo	Settings: language, text size, contrast and background	Configuración: idioma, tamaño del texto, contraste y fondo
+Gerar relatório da caçada em imagem (1920x1080 e 1080x1920)	Save a hunt report image (1920x1080 and 1080x1920)	Generar informe de la caza en imagen (1920x1080 y 1080x1920)
+Copiar o resumo da hunt	Copy the hunt summary	Copiar el resumen de la caza
+Resumo copiado!	Summary copied!	¡Resumen copiado!
+Travar: o analyzer fica visível mas os cliques passam para o jogo (Ctrl+Shift+L)	Lock: the analyzer stays visible but clicks go to the game (Ctrl+Shift+L)	Bloquear: el analyzer sigue visible pero los clics van al juego (Ctrl+Shift+L)
+Destravar o analyzer (Ctrl+Shift+L)	Unlock the analyzer (Ctrl+Shift+L)	Desbloquear el analyzer (Ctrl+Shift+L)
+Pausar / retomar	Pause / resume	Pausar / reanudar
+Zerar sessão	Reset session	Reiniciar sesión
+Manter por cima do jogo (só aparece com o Bloodstone na frente)	Keep on top of the game (only shows with Bloodstone in front)	Mantener sobre el juego (solo aparece con Bloodstone al frente)
+Junte até 6 analyzers e veja o loot, os supplies e o balanço do grupo	Join up to 6 analyzers and see the party loot, supplies and balance	Une hasta 6 analyzers y ve el loot, los suministros y el balance del grupo
+Recolher	Collapse	Contraer
+Fechar	Close	Cerrar
+Arraste o canto ou as bordas para mudar o tamanho da janela. Clique duplo volta ao tamanho original.	Drag the corner or the edges to resize the window. Double-click to reset the size.	Arrastra la esquina o los bordes para cambiar el tamaño de la ventana. Doble clic vuelve al tamaño original.
+Valor do loot:	Loot value:	Valor del loot:
+Por hora:	Per hour:	Por hora:
+Itens:	Items:	Ítems:
+Clique: preço · Botão direito: esconder	Click: price · Right-click: hide	Clic: precio · Clic derecho: ocultar
+O loot aparece aqui quando chega a mensagem de Pilhagem.	Loot shows up here when a Loot message arrives.	El loot aparece aquí cuando llega el mensaje de botín.
+diária	daily	diaria
+forja	forge	forja
+refino	refine	refinado
+Uso do item segundo a Bloodpedia (passe o mouse no item para ver onde é usado)	Item use according to Bloodpedia (hover the item to see where it is used)	Uso del ítem según Bloodpedia (pasa el ratón sobre el ítem para ver dónde se usa)
+XP/h (10 min):	XP/h (10 min):	XP/h (10 min):
+XP por kill:	XP per kill:	XP por kill:
+XP total:	Total XP:	XP total:
+Ritmo dos últimos 10 min comparado à média da sessão (barra cheia = 2× a média)	Pace of the last 10 min compared to the session average (full bar = 2× the average)	Ritmo de los últimos 10 min comparado con el promedio de la sesión (barra llena = 2× el promedio)
+Kills:	Kills:	Kills:
+Kills/h:	Kills/h:	Kills/h:
+Espécies:	Species:	Especies:
+Gasto:	Spent:	Gastado:
+Itens usados:	Items used:	Ítems usados:
+Mana gasta:	Mana spent:	Maná gastado:
+Mana gasta/h:	Mana spent/h:	Maná gastado/h:
+nenhum supply usado ainda	no supplies used yet	ningún suministro usado aún
+Clique num supply para definir o custo. Conta pelo total que o jogo mostra na barra (não precisa de bolsa aberta).	Click a supply to set its cost. It counts by the total the game shows on the bar (no need to open the bag).	Haz clic en un suministro para definir su costo. Cuenta por el total que el juego muestra en la barra (no hace falta abrir la bolsa).
+Clique para definir o custo	Click to set the cost	Clic para definir el costo
+Gasto com poções e outros supplies (preço de NPC da wiki)	Spent on potions and other supplies (NPC price from the wiki)	Gasto en pociones y otros suministros (precio de NPC de la wiki)
+Total:	Total:	Total:
+Máx. DPS:	Max DPS:	DPS máx.:
+Maior golpe:	Biggest hit:	Mayor golpe:
+Mana perdida:	Mana lost:	Maná perdido:
+Vida:	Health:	Vida:
+Mana:	Mana:	Maná:
+Fontes de dano:	Damage sources:	Fuentes de daño:
+Tipos de dano:	Damage types:	Tipos de daño:
+nenhum dano recebido ainda	no damage taken yet	ningún daño recibido aún
+nenhum ainda	none yet	ninguno aún
+Sem origem (campo, veneno…)	No source (field, poison…)	Sin origen (campo, veneno…)
+Vida recuperada (poções, magias e regeneração)	Health recovered (potions, spells and regeneration)	Vida recuperada (pociones, hechizos y regeneración)
+Idioma	Language	Idioma
+Tamanho do texto	Text size	Tamaño del texto
+Normal	Normal	Normal
+Grande	Large	Grande
+Maior	Larger	Más grande
+Alto contraste	High contrast	Alto contraste
+Textos mais claros e bordas mais fortes, para ler melhor.	Brighter text and stronger borders, easier to read.	Textos más claros y bordes más marcados, para leer mejor.
+Desligado	Off	Apagado
+Ligado	On	Encendido
+Fundo das janelas	Window background	Fondo de las ventanas
+Mais transparente deixa ver o jogo por trás.	More transparent lets you see the game behind.	Más transparente deja ver el juego detrás.
+Sólido	Solid	Sólido
+Translúcido	Translucent	Translúcido
+Transparente	Transparent	Transparente
+Restaurar padrão	Reset to default	Restablecer
+Caçada em grupo	Party hunt	Caza en grupo
+Juntem até 6 analyzers e vejam o loot, os supplies e o balanço do grupo e de cada um.	Join up to 6 analyzers and see the loot, supplies and balance of the party and of each member.	Unan hasta 6 analyzers y vean el loot, los suministros y el balance del grupo y de cada uno.
+Nome do seu personagem	Your character name	Nombre de tu personaje
+Entrar num grupo	Join a party	Unirse a un grupo
+Entrar	Join	Entrar
+Peça o código de 6 letras para o líder.	Ask the leader for the 6-letter code.	Pide el código de 6 letras al líder.
+Criar um grupo (líder)	Create a party (leader)	Crear un grupo (líder)
+Criar grupos é liberado pela equipe da Bloodpedia. Se você recebeu uma chave de líder, digite abaixo.	Creating parties is enabled by the Bloodpedia team. If you got a leader key, type it below.	Crear grupos lo habilita el equipo de Bloodpedia. Si recibiste una clave de líder, escríbela abajo.
+Criar grupo	Create party	Crear grupo
+Ativar e criar	Activate and create	Activar y crear
+Entrando…	Joining…	Entrando…
+Criando o grupo…	Creating the party…	Creando el grupo…
+No grupo, o seu nome e os números da sua caçada ficam visíveis para quem está nele, e são apagados do servidor 6 horas depois da última atualização.	In the party, your name and your hunt numbers are visible to its members, and are deleted from the server 6 hours after the last update.	En el grupo, tu nombre y los números de tu caza son visibles para sus miembros, y se borran del servidor 6 horas después de la última actualización.
+Política de privacidade	Privacy policy	Política de privacidad
+Código 	Code 	Código 
+Copiar o código	Copy the code	Copiar el código
+Loot (do líder):	Loot (leader):	Loot (del líder):
+Balanço	Balance	Balance
+Dano	Damage	Daño
+Cura	Healing	Curación
+Lucro de cada um:	Profit per person:	Ganancia de cada uno:
+Para dividir igual, quem tem o loot paga:	To split evenly, whoever holds the loot pays:	Para repartir igual, quien tiene el loot paga:
+Líder → 	Leader → 	Líder → 
+ → líder	 → leader	 → líder
+esperando o primeiro envio…	waiting for the first update…	esperando el primer envío…
+Esperando os números do grupo…	Waiting for the party numbers…	Esperando los números del grupo…
+Sem atualização há mais de 5 minutos	No update for more than 5 minutes	Sin actualización hace más de 5 minutos
+Última atualização dos números desta pessoa	Last update of this person's numbers	Última actualización de los números de esta persona
+Enviar agora	Send now	Enviar ahora
+Enviar os seus números agora (1 vez a cada 15 minutos)	Send your numbers now (once every 15 minutes)	Enviar tus números ahora (1 vez cada 15 minutos)
+Dá para enviar na hora 1 vez a cada 15 minutos. Enquanto isso, o analyzer envia sozinho a cada 2 minutos.	You can send right away once every 15 minutes. Meanwhile, the analyzer sends on its own every 2 minutes.	Puedes enviar al momento 1 vez cada 15 minutos. Mientras tanto, el analyzer envía solo cada 2 minutos.
+Zerar	Reset	Reiniciar
+Zerar a sessão do grupo para todos (só o líder)	Reset the party session for everyone (leader only)	Reiniciar la sesión del grupo para todos (solo el líder)
+Encerrar	End	Terminar
+Encerrar o grupo para todos	End the party for everyone	Terminar el grupo para todos
+Sair	Leave	Salir
+Sair do grupo	Leave the party	Salir del grupo
+agora	now	ahora
+enviando…	sending…	enviando…
+atualizado há {0} min	updated {0} min ago	actualizado hace {0} min
+ · a cada 2 min	 · every 2 min	 · cada 2 min
+ (você)	 (you)	 (tú)
+há {0} min	{0} min ago	hace {0} min
+Enviar em {0} min	Send in {0} min	Enviar en {0} min
+Antes de começar	Before you start	Antes de empezar
+Contagem de uso	Usage count	Conteo de uso
+Para sabermos quantas pessoas usam o analyzer, ele avisa a Bloodpedia quando é aberto, só com um código anônimo desta instalação e a versão. Nada do seu personagem, da sua conta ou do seu computador é enviado.	So we know how many people use the analyzer, it tells Bloodpedia when it opens, with only an anonymous code for this installation and the version. Nothing about your character, account or computer is sent.	Para saber cuántas personas usan el analyzer, avisa a Bloodpedia cuando se abre, solo con un código anónimo de esta instalación y la versión. No se envía nada de tu personaje, tu cuenta ni tu computadora.
+Ao usar o analyzer, você está ciente dessa contagem.	By using the analyzer, you are aware of this count.	Al usar el analyzer, estás al tanto de este conteo.
+Abre o Bloodstone como administrador?	Do you run Bloodstone as administrator?	¿Abres Bloodstone como administrador?
+Então abra o analyzer do mesmo jeito: botão direito no AnalyzerBloodpedia.exe › Executar como administrador. Se o jogo abre normalmente, não precisa fazer nada.	Then open the analyzer the same way: right-click AnalyzerBloodpedia.exe › Run as administrator. If the game opens normally, you don't need to do anything.	Entonces abre el analyzer igual: clic derecho en AnalyzerBloodpedia.exe › Ejecutar como administrador. Si el juego abre normalmente, no hace falta hacer nada.
+Esqueceu? Sem problema: o analyzer percebe e oferece reabrir sozinho.	Forgot? No problem: the analyzer notices and offers to reopen itself.	¿Lo olvidaste? No pasa nada: el analyzer lo detecta y ofrece reabrirse solo.
+Entendi	Got it	Entendido
+O Bloodstone está aberto como administrador	Bloodstone is running as administrator	Bloodstone está abierto como administrador
+Para ler a sua caçada, o analyzer também precisa estar. Clique abaixo e confirme o aviso do Windows: ele reabre na hora, com tudo salvo.	To read your hunt, the analyzer must be too. Click below and confirm the Windows prompt: it reopens right away, with everything saved.	Para leer tu caza, el analyzer también debe estarlo. Haz clic abajo y confirma el aviso de Windows: se reabre al momento, con todo guardado.
+Reabrir como administrador	Reopen as administrator	Reabrir como administrador
+Agora não	Not now	Ahora no
+Falta um passo	One step left	Falta un paso
+Atualizar agora	Update now	Actualizar ahora
+Baixando…	Downloading…	Descargando…
+Abrir o site	Open the website	Abrir el sitio
+Cancelar	Cancel	Cancelar
+Salvar	Save	Guardar
+Ativar	Activate	Activar
+Validando…	Validating…	Validando…
+Licença do analyzer	Analyzer license	Licencia del analyzer
+Chave de licença	License key	Clave de licencia
+Licença ativada!	License activated!	¡Licencia activada!
+Digite a chave completa.	Type the full key.	Escribe la clave completa.
+Para continuar usando o Analyzer Bloodpedia, ative a sua licença.	To keep using Analyzer Bloodpedia, activate your license.	Para seguir usando Analyzer Bloodpedia, activa tu licencia.
+Ver planos e como assinar	See plans and how to subscribe	Ver planes y cómo suscribirse

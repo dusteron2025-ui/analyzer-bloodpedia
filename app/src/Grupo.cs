@@ -282,7 +282,8 @@ namespace BloodstoneHunt
                 grupoCorpo = new StackPanel();
                 var w = new Window { Title = "Party Hunt", Width = 236, Content = grupoCorpo, Tag = Cor("#C25CE0"), Uid = "", Topmost = P.PorCima };
                 w.Style = (Style)Application.Current.Resources["JanelaAnalyzer"];
-                double[] tamG; if (P.Tamanhos.TryGetValue("grupo", out tamG)) { w.Width = Math.Max(236, tamG[0]); if (tamG[1] > 0) { w.SizeToContent = SizeToContent.Manual; w.Height = tamG[1]; } }   // tamanho salvo
+                w.Width = 236 * Acess.FatorTexto;
+                double[] tamG; if (P.Tamanhos.TryGetValue("grupo", out tamG)) { w.Width = Math.Max(236 * Acess.FatorTexto, tamG[0]); if (tamG[1] > 0) { w.SizeToContent = SizeToContent.Manual; w.Height = tamG[1]; } }   // tamanho salvo
                 double[] pos; w.WindowStartupLocation = WindowStartupLocation.Manual;
                 if (P.Posicoes.TryGetValue("grupo", out pos)) { w.Left = pos[0]; w.Top = pos[1]; } else { var h = janelas["hunt"].W; w.Left = h.Left - 244; w.Top = h.Top; }
                 janelaGrupo = new Janela { Chave = "grupo", W = w, Corpo = grupoCorpo };
@@ -324,8 +325,8 @@ namespace BloodstoneHunt
             var copiar = new Button { Style = (Style)Application.Current.Resources["BotaoTitulo"], Content = "", ToolTip = "Copiar o código", HorizontalAlignment = HorizontalAlignment.Right };
             copiar.Click += (s, e) => { try { Clipboard.SetText(grupoAtual[0]); copiar.Content = ""; } catch { } };
             cab.Children.Add(copiar); c.Children.Add(cab);
-            var atual = grupoUltimoEnvio == DateTime.MinValue ? "enviando…" : "atualizado há " + Math.Max(0, (int)(DateTime.Now - grupoUltimoEnvio).TotalMinutes) + " min";
-            c.Children.Add(Linha(grupoErro ?? (atual + " · a cada 2 min"), grupoErro != null ? "#FF8A8A" : "#626772", 10.5));
+            var atual = grupoUltimoEnvio == DateTime.MinValue ? Acess.T("enviando…") : string.Format(Acess.T("atualizado há {0} min"), Math.Max(0, (int)(DateTime.Now - grupoUltimoEnvio).TotalMinutes));
+            c.Children.Add(Linha(grupoErro ?? (atual + Acess.T(" · a cada 2 min")), grupoErro != null ? "#FF8A8A" : "#626772", 10.5));
             if ((L == null || L.M == null) && !EmTutorial)
             {
                 // sem ler o jogo, os números desta pessoa vão zerados para o grupo
@@ -360,11 +361,11 @@ namespace BloodstoneHunt
                 var cartao = new Border { CornerRadius = new CornerRadius(7), Background = Cor("#1E2128"), BorderBrush = Cor(eLider ? "#4A4128" : "#2A2E35"), BorderThickness = new Thickness(1),
                     Padding = new Thickness(7, 4, 7, 5), Margin = new Thickness(0, 0, 0, 4), Opacity = semDados || parado ? 0.5 : 1 };
                 var bloco = new StackPanel(); cartao.Child = bloco;
-                var nome = Linha((eLider ? "\U0001F451 " : "") + GrupoServidor.Txt(m, "nome") + (GrupoServidor.Txt(m, "id") == eu ? " (você)" : ""), eLider ? "#F2C94C" : "#E9EBEE", 11.5, FontWeights.SemiBold);
+                var nome = Linha((eLider ? "\U0001F451 " : "") + GrupoServidor.Txt(m, "nome") + (GrupoServidor.Txt(m, "id") == eu ? Acess.T(" (você)") : ""), eLider ? "#F2C94C" : "#E9EBEE", 11.5, FontWeights.SemiBold);
                 if (parado) nome.ToolTip = "Sem atualização há mais de 5 minutos";
                 var topo = new Grid(); topo.Children.Add(nome); bloco.Children.Add(topo);
                 // há quanto tempo os números desta pessoa chegaram ao servidor
-                var idade = semDados ? null : Linha(Math.Max(0, (agora - at) / 60000) == 0 ? "agora" : "há " + Math.Max(0, (agora - at) / 60000) + " min", "#626772", 9.5);
+                var idade = semDados ? null : Linha(Math.Max(0, (agora - at) / 60000) == 0 ? Acess.T("agora") : string.Format(Acess.T("há {0} min"), Math.Max(0, (agora - at) / 60000)), "#626772", 9.5);
                 if (idade != null) { idade.HorizontalAlignment = HorizontalAlignment.Right; idade.VerticalAlignment = VerticalAlignment.Center; idade.ToolTip = "Última atualização dos números desta pessoa"; topo.Children.Add(idade); nome.Margin = new Thickness(0, 0, 44, 0); }
                 if (souLider && !eLider)
                 {
@@ -439,7 +440,7 @@ namespace BloodstoneHunt
             var falta = TimeSpan.FromMinutes(15) - (DateTime.Now - grupoUltimoManual);
             if (falta > TimeSpan.Zero)
             {
-                enviar.IsEnabled = false; enviar.Content = "Enviar em " + Math.Max(1, (int)Math.Ceiling(falta.TotalMinutes)) + " min";
+                enviar.IsEnabled = false; enviar.Content = string.Format(Acess.T("Enviar em {0} min"), Math.Max(1, (int)Math.Ceiling(falta.TotalMinutes)));
                 ToolTipService.SetShowOnDisabled(enviar, true); enviar.ToolTip = "Dá para enviar na hora 1 vez a cada 15 minutos. Enquanto isso, o analyzer envia sozinho a cada 2 minutos.";
             }
             else enviar.ToolTip = "Enviar os seus números agora (1 vez a cada 15 minutos)";
@@ -469,6 +470,7 @@ namespace BloodstoneHunt
                 lin.Children.Add(zerar);
             }
             lin.Children.Add(sair); c.Children.Add(lin);
+            Acess.AplicarEm(c);   // idioma, texto e contraste já no que acabou de ser montado
         }
     }
 

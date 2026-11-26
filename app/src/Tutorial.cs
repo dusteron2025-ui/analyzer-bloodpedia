@@ -20,6 +20,18 @@ namespace BloodstoneHunt
 
     partial class Programa
     {
+        /** print da tela de configurações (teste): teste-captura.exe --testar-config arquivo.png */
+        public void TestarConfig(string arquivo)
+        {
+            Carregar(); P.PorCima = false;
+            { var ac = Environment.GetEnvironmentVariable("ANALYZER_ACESS"); if (ac != null) { var v = ac.Split(';'); P.Idioma = Acess.Idioma = v[0]; P.FatorTexto = Acess.FatorTexto = double.Parse(v[1], System.Globalization.CultureInfo.InvariantCulture); P.Contraste = Acess.Contraste = v[2] == "1"; P.Fundo = Acess.Fundo = double.Parse(v[3], System.Globalization.CultureInfo.InvariantCulture); } }
+            foreach (var d in Definicoes) Criar(d);
+            AbrirConfiguracoes(); var w = janelaConfig; w.Left = -10000;
+            w.Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.ContextIdle); Acess.AplicarEm(w); w.UpdateLayout();
+            var enc = new PngBitmapEncoder(); enc.Frames.Add(BitmapFrame.Create(Print2x(w)));
+            using (var f = File.Create(arquivo)) enc.Save(f);
+            w.Close();
+        }
         // ---------------- prints das janelas em 2x ----------------
         static BitmapSource Print2x(Window w)
         {
